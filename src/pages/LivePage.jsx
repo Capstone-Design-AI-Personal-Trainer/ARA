@@ -1,29 +1,9 @@
-﻿import React from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
 
-function angle3(a, b, c) {
-  if (!a || !b || !c) return null;
-  const abx = a.x - b.x;
-  const aby = a.y - b.y;
-  const cbx = c.x - b.x;
-  const cby = c.y - b.y;
-  const dot = abx * cbx + aby * cby;
-  const abLen = Math.hypot(abx, aby);
-  const cbLen = Math.hypot(cbx, cby);
-  if (!abLen || !cbLen) return null;
-  const cosine = Math.min(1, Math.max(-1, dot / (abLen * cbLen)));
-  return Math.round((Math.acos(cosine) * 180) / Math.PI);
-}
-
-function gradeAngle(angle, target, tolerance) {
-  if (angle === null) return { label: "--", score: 0, level: "danger" };
-  const delta = Math.abs(target - angle);
-  const score = Math.max(0, 100 - Math.round((delta / tolerance) * 40));
-  if (delta < tolerance * 0.5) return { label: `${angle}°`, score, level: "good" };
-  if (delta < tolerance) return { label: `${angle}°`, score, level: "warn" };
-  return { label: `${angle}°`, score, level: "danger" };
-}
+const TARGET_REPS = 12;
+const ASSUME_SCAN_PASS = true;
 
 function drawSkeleton(ctx, pose, w, h) {
   const links = [
@@ -32,49 +12,80 @@ function drawSkeleton(ctx, pose, w, h) {
     [24, 26], [26, 28],
   ];
   ctx.lineWidth = 2;
-
   links.forEach(([aIdx, bIdx]) => {
     const a = pose[aIdx];
     const b = pose[bIdx];
-    if (!a || !b || a.visibility < 0.4 || b.visibility < 0.4) return;
-    ctx.strokeStyle = "rgba(31,181,178,0.92)";
+    if (!a || !b || a.visibility < 0.45 || b.visibility < 0.45) return;
+    ctx.strokeStyle = "rgba(111,207,205,0.9)";
     ctx.beginPath();
     ctx.moveTo((1 - a.x) * w, a.y * h);
     ctx.lineTo((1 - b.x) * w, b.y * h);
     ctx.stroke();
   });
-
   pose.forEach((p) => {
-    if (!p || p.visibility < 0.4) return;
-    ctx.fillStyle = "rgba(34,197,94,0.95)";
+    if (!p || p.visibility < 0.45) return;
+    ctx.fillStyle = "rgba(163,230,229,0.95)";
     ctx.beginPath();
-    ctx.arc((1 - p.x) * w, p.y * h, 4, 0, Math.PI * 2);
+    ctx.arc((1 - p.x) * w, p.y * h, 3.8, 0, Math.PI * 2);
     ctx.fill();
   });
 }
 
-function badgeClass(level) {
-  if (level === "good") return "badge-react good";
-  if (level === "warn") return "badge-react warn";
-  return "badge-react danger";
+function hasVisible(...points) {
+  return points.every((p) => p && p.visibility > 0.55);
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 export default function LivePage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const exerciseName = state?.exerciseName || "레그 레이즈";
+
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const rafRef = React.useRef(0);
   const poseRef = React.useRef(null);
   const streamRef = React.useRef(null);
   const lastVideoTimeRef = React.useRef(-1);
+  const sessionStartRef = React.useRef(Date.now());
+  const holdStartRef = React.useRef(null);
+  const repStateRef = React.useRef("closed");
   const scoreSamplesRef = React.useRef([]);
 
   const [status, setStatus] = React.useState("카메라 연결 준비 중...");
-  const [feedback, setFeedback] = React.useState("자세를 인식 중입니다...");
+  const [stage, setStage] = React.useState("scan");
+  const [countdown, setCountdown] = React.useState(3);
+  const [checks, setChecks] = React.useState({
+    face: false,
+    shoulder: false,
+    pelvis: false,
+    feet: false,
+  });
   const [rep, setRep] = React.useState(0);
-  const [knee, setKnee] = React.useState({ label: "무릎 --°", level: "danger" });
-  const [hip, setHip] = React.useState({ label: "고관절 --°", level: "danger" });
-  const [shoulder, setShoulder] = React.useState({ label: "어깨 --°", level: "danger" });
+  const [accuracy, setAccuracy] = React.useState(82);
+  const [paused, setPaused] = React.useState(false);
+  const [coachMsg, setCoachMsg] = React.useState("자세를 인식하고 있어요.");
+
+  React.useEffect(() => {
+    if (!ASSUME_SCAN_PASS || stage !== "scan") return;
+    setChecks({ face: true, shoulder: true, pelvis: true, feet: true });
+    setCountdown(3);
+    const t1 = setTimeout(() => setCountdown(2), 700);
+    const t2 = setTimeout(() => setCountdown(1), 1400);
+    const t3 = setTimeout(() => {
+      setStage("live");
+      setCoachMsg("좋아요. 본 운동을 시작합니다.");
+      sessionStartRef.current = Date.now();
+    }, 2100);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [stage]);
 
   const resizeCanvas = React.useCallback(() => {
     const canvas = canvasRef.current;
@@ -94,23 +105,34 @@ export default function LivePage() {
     }
   }, []);
 
-  const scoreFromSamples = React.useCallback(() => {
-    const samples = scoreSamplesRef.current;
-    if (!samples.length) return 80;
-    const total = samples.reduce((sum, v) => sum + v, 0);
-    return Math.max(50, Math.min(99, Math.round(total / samples.length)));
-  }, []);
+  const finishSession = React.useCallback(
+    (reason = "manual") => {
+      const elapsedSec = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 1000));
+      const avgAccuracy = scoreSamplesRef.current.length
+        ? Math.round(scoreSamplesRef.current.reduce((a, b) => a + b, 0) / scoreSamplesRef.current.length)
+        : accuracy;
+      const calories = Math.max(12, Math.round(elapsedSec * 0.13 + rep * 0.8));
+      stopSession();
+      navigate("/result", {
+        state: {
+          score: avgAccuracy,
+          reps: rep,
+          targetReps: TARGET_REPS,
+          durationSec: elapsedSec,
+          calories,
+          reason,
+          exerciseName,
+        },
+      });
+    },
+    [accuracy, exerciseName, navigate, rep, stopSession]
+  );
 
   const processFrame = React.useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const pose = poseRef.current;
-    if (!video || !canvas || !pose) {
-      rafRef.current = requestAnimationFrame(processFrame);
-      return;
-    }
-
-    if (video.readyState < 2) {
+    if (!video || !canvas || !pose || video.readyState < 2) {
       rafRef.current = requestAnimationFrame(processFrame);
       return;
     }
@@ -127,58 +149,97 @@ export default function LivePage() {
         drawSkeleton(ctx, lm, canvas.width, canvas.height);
         setStatus("실시간 자세 분석 중");
 
-        const leftKnee = angle3(lm[23], lm[25], lm[27]);
-        const rightKnee = angle3(lm[24], lm[26], lm[28]);
-        const kneeAvg = leftKnee && rightKnee ? Math.round((leftKnee + rightKnee) / 2) : leftKnee || rightKnee;
+        const nose = lm[0];
+        const lShoulder = lm[11];
+        const rShoulder = lm[12];
+        const lHip = lm[23];
+        const rHip = lm[24];
+        const lAnkle = lm[27];
+        const rAnkle = lm[28];
+        const lWrist = lm[15];
+        const rWrist = lm[16];
 
-        const leftHip = angle3(lm[11], lm[23], lm[25]);
-        const rightHip = angle3(lm[12], lm[24], lm[26]);
-        const hipAvg = leftHip && rightHip ? Math.round((leftHip + rightHip) / 2) : leftHip || rightHip;
+        const faceOk = hasVisible(nose);
+        const shoulderOk = hasVisible(lShoulder, rShoulder) && Math.abs(lShoulder.y - rShoulder.y) < 0.08;
+        const pelvisOk = hasVisible(lHip, rHip) && Math.abs(lHip.y - rHip.y) < 0.08;
+        const feetOk = hasVisible(lAnkle, rAnkle) && lAnkle.y < 0.98 && rAnkle.y < 0.98;
+        const allGood = faceOk && shoulderOk && pelvisOk && feetOk;
 
-        const shoulderAngle = angle3(lm[13], lm[11], lm[23]);
+        setChecks({ face: faceOk, shoulder: shoulderOk, pelvis: pelvisOk, feet: feetOk });
 
-        const kneeResult = gradeAngle(kneeAvg, 90, 15);
-        const hipResult = gradeAngle(hipAvg, 80, 18);
-        const shoulderResult = gradeAngle(shoulderAngle, 65, 15);
+        if (stage === "scan" && !ASSUME_SCAN_PASS) {
+          if (allGood) {
+            if (!holdStartRef.current) holdStartRef.current = Date.now();
+            const sec = (Date.now() - holdStartRef.current) / 1000;
+            if (sec < 1) setCountdown(3);
+            else if (sec < 2) setCountdown(2);
+            else if (sec < 3) setCountdown(1);
+            else {
+              setStage("live");
+              setCoachMsg("좋아요. 본 운동을 시작합니다.");
+              sessionStartRef.current = Date.now();
+            }
+          } else {
+            holdStartRef.current = null;
+            setCountdown(3);
+          }
+        } else if (stage === "live") {
+          const shoulderWidth = hasVisible(lShoulder, rShoulder) ? distance(lShoulder, rShoulder) : 0.18;
+          const wristSpread = hasVisible(lWrist, rWrist) ? distance(lWrist, rWrist) : 0;
+          const open = wristSpread > shoulderWidth * 1.45;
+          const closed = wristSpread < shoulderWidth * 1.15;
 
-        setKnee({ label: `무릎 ${kneeResult.label}`, level: kneeResult.level });
-        setHip({ label: `고관절 ${hipResult.label}`, level: hipResult.level });
-        setShoulder({ label: `어깨 ${shoulderResult.label}`, level: shoulderResult.level });
+          if (!paused) {
+            if (repStateRef.current === "closed" && open) repStateRef.current = "open";
+            if (repStateRef.current === "open" && closed) {
+              repStateRef.current = "closed";
+              setRep((prev) => {
+                const next = prev + 1;
+                if (next >= TARGET_REPS) {
+                  setTimeout(() => finishSession("completed"), 120);
+                }
+                return next;
+              });
+            }
+          }
 
-        const avgScore = Math.round((kneeResult.score + hipResult.score + shoulderResult.score) / 3);
-        scoreSamplesRef.current.push(avgScore);
-        if (scoreSamplesRef.current.length > 160) scoreSamplesRef.current.shift();
+          const postureScore = Math.round(
+            (faceOk ? 25 : 10) +
+            (shoulderOk ? 25 : 10) +
+            (pelvisOk ? 25 : 10) +
+            (feetOk ? 25 : 10)
+          );
+          scoreSamplesRef.current.push(postureScore);
+          if (scoreSamplesRef.current.length > 240) scoreSamplesRef.current.shift();
+          const rolling = Math.round(scoreSamplesRef.current.reduce((a, b) => a + b, 0) / scoreSamplesRef.current.length);
+          setAccuracy(Math.max(55, Math.min(99, rolling)));
 
-        if (avgScore > 85) setFeedback("아주 좋아요. 현재 정렬을 유지하세요.");
-        else if (avgScore > 65) setFeedback("좋아요. 허리와 어깨 정렬을 조금만 더 맞춰보세요.");
-        else setFeedback("자세 보정이 필요해요. 천천히 범위를 줄여 수행해보세요.");
-
-        setRep((prev) => {
-          const next = prev + 1;
-          return next;
-        });
+          if (!allGood) setCoachMsg("중립 정렬이 흐트러졌어요. 어깨와 골반을 맞춰주세요.");
+          else if (open) setCoachMsg("좋아요. 천천히 원위치로 돌아오세요.");
+          else setCoachMsg("천천히 양팔을 옆으로 벌려주세요.");
+        }
       } else {
         setStatus("신체를 화면 중앙에 맞춰주세요");
+        if (stage === "scan" && !ASSUME_SCAN_PASS) {
+          setChecks({ face: false, shoulder: false, pelvis: false, feet: false });
+          holdStartRef.current = null;
+          setCountdown(3);
+        }
       }
     }
 
     rafRef.current = requestAnimationFrame(processFrame);
-  }, []);
+  }, [finishSession, paused, stage]);
 
   React.useEffect(() => {
     let mounted = true;
-
     async function startSession() {
       try {
-        scoreSamplesRef.current = [];
-        setRep(0);
         setStatus("MediaPipe 모델 로딩 중...");
-
         const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm");
         const fileset = await vision.FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
         );
-
         poseRef.current = await vision.PoseLandmarker.createFromOptions(fileset, {
           baseOptions: {
             modelAssetPath:
@@ -193,27 +254,22 @@ export default function LivePage() {
           video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
-
         if (!mounted) return;
         streamRef.current = stream;
-
         const video = videoRef.current;
         video.srcObject = stream;
         await video.play();
         resizeCanvas();
-
         setStatus("카메라 연결 완료");
         rafRef.current = requestAnimationFrame(processFrame);
       } catch (err) {
         setStatus("카메라/모델 연결 실패: HTTPS 환경과 권한을 확인해주세요.");
-        setFeedback("권한 승인 후 다시 시도해주세요.");
         console.error(err);
       }
     }
 
     startSession();
     window.addEventListener("resize", resizeCanvas);
-
     return () => {
       mounted = false;
       window.removeEventListener("resize", resizeCanvas);
@@ -225,36 +281,56 @@ export default function LivePage() {
     };
   }, [processFrame, resizeCanvas, stopSession]);
 
-  const repCount = Math.floor(rep / 12);
-
   return (
-    <SequentialScreen className="screen-react">
-      <h2>실시간 자세 교정</h2>
-      <div className="camera-stage-react">
+    <SequentialScreen className="screen-react live-screen">
+      <div className="live-head">
+        <button className="hero-back" onClick={() => navigate(-1)}>‹</button>
+        <div>
+          <p className="diag-eyebrow">{stage === "scan" ? "STEP 03 · 자세 정렬" : "NOW · 실시간 교정"}</p>
+          <h2 className="live-title">{stage === "scan" ? "2초간 자세를 유지" : `${exerciseName} - 런지`}</h2>
+        </div>
+      </div>
+
+      <div className="live-camera-card">
         <video ref={videoRef} className="camera-video-react" playsInline muted />
         <canvas ref={canvasRef} className="pose-canvas-react" />
         <div className="camera-status-react">{status}</div>
       </div>
-      <div className="glass-react card-react">
-        <p className="muted-react">{feedback}</p>
-        <p className="muted-react">반복 {repCount}회</p>
-        <div className="badge-row">
-          <span className={badgeClass(knee.level)}>{knee.label}</span>
-          <span className={badgeClass(hip.level)}>{hip.label}</span>
-          <span className={badgeClass(shoulder.level)}>{shoulder.label}</span>
-        </div>
-        <button
-          className="btn-react primary"
-          onClick={() => {
-            const score = scoreFromSamples();
-            navigate("/result", { state: { score } });
-          }}
-        >
-          세트 완료
-        </button>
-      </div>
+
+      {stage === "scan" ? (
+        <>
+          <div className="live-count">{countdown}</div>
+          <div className="scan-check-grid">
+            <div className={`scan-chip ${checks.face ? "on" : ""}`}>얼굴 인식</div>
+            <div className={`scan-chip ${checks.shoulder ? "on" : ""}`}>어깨 위치</div>
+            <div className={`scan-chip ${checks.pelvis ? "on" : ""}`}>골반 정렬</div>
+            <div className={`scan-chip ${checks.feet ? "on" : ""}`}>발 위치</div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="glass-react card-react live-coach-row">
+            <p className="diag-eyebrow">ARA COACH</p>
+            <p>{coachMsg}</p>
+          </div>
+          <div className="live-kpi-grid">
+            <div className="glass-react card-react live-kpi-card">
+              <p className="diag-eyebrow">REPS</p>
+              <strong>{rep}<small>/{TARGET_REPS}</small></strong>
+            </div>
+            <div className="glass-react card-react live-kpi-card">
+              <p className="diag-eyebrow">ACCURACY</p>
+              <strong>{accuracy}<small>%</small></strong>
+            </div>
+          </div>
+          <div className="live-actions">
+            <button className="btn-react" onClick={() => setPaused((v) => !v)}>
+              {paused ? "다시 시작" : "일시정지"}
+            </button>
+            <button className="btn-react primary" onClick={() => finishSession("manual")}>운동 종료 →</button>
+          </div>
+        </>
+      )}
     </SequentialScreen>
   );
 }
-
-

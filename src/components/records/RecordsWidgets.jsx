@@ -5,7 +5,26 @@ function animatedNumber(value, suffix = "") {
   return <span>{value}{suffix}</span>;
 }
 
-export function WeeklyBriefCard({ period, accuracyDelta, painTrend, riskPostureDelta, goals }) {
+function PainTrendValue({ before, after }) {
+  const [revealed, setRevealed] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setRevealed(true), 700);
+    return () => clearTimeout(timer);
+  }, [before, after]);
+
+  const delta = after - before;
+  const toneClass = delta < 0 ? "down" : delta > 0 ? "up" : "";
+  const value = revealed ? after : before;
+
+  return (
+    <span className={`records-kpi-pain ${revealed ? toneClass : ""}`}>
+      {value.toFixed(1)}
+    </span>
+  );
+}
+
+export function WeeklyBriefCard({ period, accuracyDelta, painBefore, painAfter, riskPostureDelta, goals }) {
   return (
     <motion.article className="glass-react card-react records-brief" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
       <div className="row-between">
@@ -13,15 +32,17 @@ export function WeeklyBriefCard({ period, accuracyDelta, painTrend, riskPostureD
         <span className="muted-react">{period}</span>
       </div>
       <div className="records-kpi-grid">
-        <div>
+        <div className="records-kpi-item">
           <p className="muted-react">정확도 변화</p>
           <strong className="records-kpi-value mint">{animatedNumber(accuracyDelta, "%")}</strong>
         </div>
-        <div>
+        <div className="records-kpi-item">
           <p className="muted-react">통증 변화</p>
-          <strong className="records-kpi-value">{painTrend}</strong>
+          <strong className="records-kpi-value">
+            <PainTrendValue before={painBefore} after={painAfter} />
+          </strong>
         </div>
-        <div>
+        <div className="records-kpi-item">
           <p className="muted-react">위험자세 빈도</p>
           <strong className="records-kpi-value mint">{animatedNumber(riskPostureDelta, "%")}</strong>
         </div>

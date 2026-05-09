@@ -49,7 +49,8 @@ export default function RecordsPage() {
       <WeeklyBriefCard
         period="5/6 ~ 5/12"
         accuracyDelta={avg}
-        painTrend="1.6 → 1.1"
+        painBefore={1.6}
+        painAfter={1.1}
         riskPostureDelta={-23}
         goals={["어깨 안정화 루틴 3회", "허리 과신전 경고 20% 감소"]}
       />

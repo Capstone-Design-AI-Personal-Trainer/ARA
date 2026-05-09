@@ -59,9 +59,9 @@ const ringItem = {
 };
 
 const progressData = [
-  { label: "Accuracy", value: 82 },
-  { label: "Stability", value: 74 },
-  { label: "Consistency", value: 91 },
+  { label: "정확도", value: 82 },
+  { label: "안정성", value: 74 },
+  { label: "일관성", value: 91 },
 ];
 
 function ProgressRing({ label, value, delay }) {
@@ -127,8 +127,8 @@ export default function RehabHomeScreen() {
 
       <motion.header className="rehab-copy" variants={textReveal}>
         <p className="eyebrow">AI Rehabilitation Assistant · ARA</p>
-        <h1>Ready for your daily recovery?</h1>
-        <p className="sub">Your guided session is calibrated and ready</p>
+        <h1>오늘의 회복, 시작할 준비 되셨나요?</h1>
+        <p className="sub">AI 가이드 세션이 정밀 분석을 마쳤습니다.</p>
       </motion.header>
 
       <motion.section className="rehab-progress" variants={progressList}>
@@ -152,7 +152,7 @@ export default function RehabHomeScreen() {
         }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
       >
-        Start Today&apos;s Session
+        오늘의 운동 시작하기
       </motion.button>
     </motion.main>
   );

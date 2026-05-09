@@ -20,6 +20,7 @@ function TabIcon({ kind }) {
 
 export default function AppLayout() {
   const { pathname } = useLocation();
+  const shellRef = React.useRef(null);
   const hideNav = pathname === "/";
   const showThemeToggle = pathname === "/home";
   const [diagnosis, setDiagnosis] = React.useState({
@@ -44,6 +45,12 @@ export default function AppLayout() {
     } catch {}
   }, [theme]);
 
+  React.useEffect(() => {
+    if (shellRef.current) {
+      shellRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
+
   const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
   const isActiveTab = (to) => pathname === to || pathname.startsWith(`${to}/`);
   const appShellClass = pathname === "/home" ? "app-shell-react no-scroll" : "app-shell-react";
@@ -59,7 +66,7 @@ export default function AppLayout() {
             </button>
           )}
 
-          <main className={appShellClass}>
+          <main ref={shellRef} className={appShellClass}>
             <Outlet context={{ theme, isDark, diagnosis, setDiagnosis }} />
           </main>
 
