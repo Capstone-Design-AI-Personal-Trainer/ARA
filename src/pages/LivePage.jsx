@@ -1,32 +1,64 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
+import { useCameraStream, usePoseTracker } from "../pose-module";
 
 const TARGET_REPS = 12;
 const ASSUME_SCAN_PASS = true;
 
-function drawSkeleton(ctx, pose, w, h) {
+function getCoverRect(canvasWidth, canvasHeight, videoWidth, videoHeight) {
+  if (!videoWidth || !videoHeight) {
+    return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+  }
+
+  const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+  const width = videoWidth * scale;
+  const height = videoHeight * scale;
+
+  return {
+    x: (canvasWidth - width) / 2,
+    y: (canvasHeight - height) / 2,
+    width,
+    height,
+  };
+}
+
+function getCoverPoint(point, rect) {
+  return {
+    x: rect.x + (1 - point.x) * rect.width,
+    y: rect.y + point.y * rect.height,
+  };
+}
+
+function drawSkeleton(ctx, pose, canvas, video) {
   const links = [
     [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
     [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
     [24, 26], [26, 28],
   ];
+  const rect = getCoverRect(canvas.width, canvas.height, video.videoWidth, video.videoHeight);
+
   ctx.lineWidth = 2;
   links.forEach(([aIdx, bIdx]) => {
     const a = pose[aIdx];
     const b = pose[bIdx];
     if (!a || !b || a.visibility < 0.45 || b.visibility < 0.45) return;
+    const start = getCoverPoint(a, rect);
+    const end = getCoverPoint(b, rect);
+
     ctx.strokeStyle = "rgba(111,207,205,0.9)";
     ctx.beginPath();
-    ctx.moveTo((1 - a.x) * w, a.y * h);
-    ctx.lineTo((1 - b.x) * w, b.y * h);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
     ctx.stroke();
   });
   pose.forEach((p) => {
     if (!p || p.visibility < 0.45) return;
+    const point = getCoverPoint(p, rect);
+
     ctx.fillStyle = "rgba(163,230,229,0.95)";
     ctx.beginPath();
-    ctx.arc((1 - p.x) * w, p.y * h, 3.8, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, 3.8, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -46,10 +78,6 @@ export default function LivePage() {
 
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
-  const rafRef = React.useRef(0);
-  const poseRef = React.useRef(null);
-  const streamRef = React.useRef(null);
-  const lastVideoTimeRef = React.useRef(-1);
   const sessionStartRef = React.useRef(Date.now());
   const holdStartRef = React.useRef(null);
   const repStateRef = React.useRef("closed");
@@ -69,6 +97,8 @@ export default function LivePage() {
   const [paused, setPaused] = React.useState(false);
   const [coachMsg, setCoachMsg] = React.useState("자세를 인식하고 있어요.");
 
+  const { cameraStatus, cameraError } = useCameraStream(videoRef);
+
   React.useEffect(() => {
     if (!ASSUME_SCAN_PASS || stage !== "scan") return;
     setChecks({ face: true, shoulder: true, pelvis: true, feet: true });
@@ -87,24 +117,6 @@ export default function LivePage() {
     };
   }, [stage]);
 
-  const resizeCanvas = React.useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-  }, []);
-
-  const stopSession = React.useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = 0;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
   const finishSession = React.useCallback(
     (reason = "manual") => {
       const elapsedSec = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 1000));
@@ -112,7 +124,6 @@ export default function LivePage() {
         ? Math.round(scoreSamplesRef.current.reduce((a, b) => a + b, 0) / scoreSamplesRef.current.length)
         : accuracy;
       const calories = Math.max(12, Math.round(elapsedSec * 0.13 + rep * 0.8));
-      stopSession();
       navigate("/result", {
         state: {
           score: avgAccuracy,
@@ -125,28 +136,20 @@ export default function LivePage() {
         },
       });
     },
-    [accuracy, exerciseName, navigate, rep, stopSession]
+    [accuracy, exerciseName, navigate, rep]
   );
 
-  const processFrame = React.useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const pose = poseRef.current;
-    if (!video || !canvas || !pose || video.readyState < 2) {
-      rafRef.current = requestAnimationFrame(processFrame);
-      return;
-    }
+  const handlePose = React.useCallback(
+    ({ landmarks: lm }) => {
+      if (lm?.length) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (video && canvas && ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          drawSkeleton(ctx, lm, canvas, video);
+        }
 
-    const now = performance.now();
-    if (video.currentTime !== lastVideoTimeRef.current) {
-      lastVideoTimeRef.current = video.currentTime;
-      const result = pose.detectForVideo(video, now);
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (result.landmarks && result.landmarks[0]) {
-        const lm = result.landmarks[0];
-        drawSkeleton(ctx, lm, canvas.width, canvas.height);
         setStatus("실시간 자세 분석 중");
 
         const nose = lm[0];
@@ -219,6 +222,10 @@ export default function LivePage() {
           else setCoachMsg("천천히 양팔을 옆으로 벌려주세요.");
         }
       } else {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         setStatus("신체를 화면 중앙에 맞춰주세요");
         if (stage === "scan" && !ASSUME_SCAN_PASS) {
           setChecks({ face: false, shoulder: false, pelvis: false, feet: false });
@@ -226,60 +233,37 @@ export default function LivePage() {
           setCountdown(3);
         }
       }
-    }
-
-    rafRef.current = requestAnimationFrame(processFrame);
-  }, [finishSession, paused, stage]);
+    },
+    [finishSession, paused, stage]
+  );
 
   React.useEffect(() => {
-    let mounted = true;
-    async function startSession() {
-      try {
-        setStatus("MediaPipe 모델 로딩 중...");
-        const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm");
-        const fileset = await vision.FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-        );
-        poseRef.current = await vision.PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numPoses: 1,
-        });
+    if (cameraStatus === "loading") setStatus("카메라 연결 준비 중...");
+    if (cameraStatus === "error") setStatus(cameraError || "카메라 연결 실패: 권한을 확인해주세요.");
+  }, [cameraError, cameraStatus]);
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false,
-        });
-        if (!mounted) return;
-        streamRef.current = stream;
-        const video = videoRef.current;
-        video.srcObject = stream;
-        await video.play();
-        resizeCanvas();
-        setStatus("카메라 연결 완료");
-        rafRef.current = requestAnimationFrame(processFrame);
-      } catch (err) {
-        setStatus("카메라/모델 연결 실패: HTTPS 환경과 권한을 확인해주세요.");
-        console.error(err);
-      }
-    }
+  const { poseStatus } = usePoseTracker({
+    videoRef,
+    canvasRef,
+    enabled: cameraStatus === "ready",
+    draw: false,
+    targetFps: 30,
+    minVisibility: 0.45,
+    modelAssetPath:
+      "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task",
+    onPose: handlePose,
+    onError: () => {
+      setStatus("카메라/모델 연결 실패: HTTPS 환경과 권한을 확인해주세요.");
+    },
+  });
 
-    startSession();
-    window.addEventListener("resize", resizeCanvas);
-    return () => {
-      mounted = false;
-      window.removeEventListener("resize", resizeCanvas);
-      stopSession();
-      if (poseRef.current) {
-        poseRef.current.close();
-        poseRef.current = null;
-      }
-    };
-  }, [processFrame, resizeCanvas, stopSession]);
+  React.useEffect(() => {
+    if (cameraStatus !== "ready") return;
+    if (poseStatus === "loading") setStatus("MediaPipe 모델 로딩 중...");
+    if (poseStatus === "detecting") setStatus("실시간 자세 분석 중");
+    if (poseStatus === "no-pose") setStatus("신체를 화면 중앙에 맞춰주세요");
+    if (poseStatus === "error") setStatus("카메라/모델 연결 실패: HTTPS 환경과 권한을 확인해주세요.");
+  }, [cameraStatus, poseStatus]);
 
   return (
     <SequentialScreen className="screen-react live-screen">
