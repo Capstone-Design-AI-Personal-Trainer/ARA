@@ -1,0 +1,227 @@
+﻿:root {
+  --rehab-bg-1: #eef8f8;
+  --rehab-bg-2: #dbf1f1;
+  --rehab-ink: #102f2f;
+  --rehab-sub: #4d6b6b;
+  --rehab-line: rgba(39, 115, 115, 0.24);
+  --rehab-glow: #8bd5f2;
+  --rehab-card: rgba(255, 255, 255, 0.5);
+}
+
+.rehab-home {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px 2px 0;
+  color: var(--rehab-ink);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+}
+
+.rehab-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(163, 230, 229, 0.45), transparent 42%),
+    radial-gradient(circle at 80% 75%, rgba(139, 213, 242, 0.3), transparent 48%),
+    linear-gradient(180deg, var(--rehab-bg-1), var(--rehab-bg-2));
+}
+
+.rehab-hero {
+  position: relative;
+  height: min(34vh, 300px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.wireframe-glow {
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 213, 242, 0.34), rgba(139, 213, 242, 0));
+  filter: blur(6px);
+}
+
+.wireframe-body {
+  position: relative;
+  width: min(78%, 260px);
+  aspect-ratio: 3 / 6.2;
+  border: 1px solid var(--rehab-line);
+  border-radius: 100px 100px 40px 40px;
+}
+
+.wireframe-body::before,
+.wireframe-body::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid var(--rehab-line);
+}
+
+.wireframe-body::before {
+  top: 16%;
+  width: 62%;
+  height: 24%;
+  border-radius: 60px;
+}
+
+.wireframe-body::after {
+  bottom: 10%;
+  width: 70%;
+  height: 26%;
+  border-radius: 40px;
+}
+
+.joint {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6fcfcd;
+  box-shadow: 0 0 0 6px rgba(111, 207, 205, 0.15);
+}
+
+.j1 { left: 50%; top: 12%; transform: translateX(-50%); }
+.j2 { left: 28%; top: 31%; }
+.j3 { right: 28%; top: 31%; }
+.j4 { left: 50%; top: 40%; transform: translateX(-50%); }
+.j5 { left: 35%; top: 53%; }
+.j6 { right: 35%; top: 53%; }
+.j7 { left: 42%; bottom: 20%; }
+.j8 { right: 42%; bottom: 20%; }
+.j9 { left: 50%; bottom: 8%; transform: translateX(-50%); }
+
+.rehab-copy .eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rehab-sub);
+}
+
+.rehab-copy {
+  margin-top: 28px;
+}
+
+.rehab-copy h1 {
+  margin: 6px 0 6px;
+  font-size: clamp(24px, 6.2vw, 32px);
+  line-height: 1.12;
+}
+
+.rehab-copy .sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--rehab-sub);
+}
+
+.rehab-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rehab-ring-card {
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--rehab-card);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  text-align: center;
+}
+
+.rehab-ring-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 6px;
+}
+
+.rehab-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.rehab-ring-bg {
+  fill: none;
+  stroke: rgba(77, 107, 107, 0.2);
+  stroke-width: 8;
+}
+
+.rehab-ring-fg {
+  fill: none;
+  stroke: var(--rehab-glow);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.rehab-ring-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rehab-ring-label {
+  font-size: 11px;
+  color: var(--rehab-sub);
+}
+
+.rehab-cta {
+  margin-top: 0;
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #a3e6e5, #8bd5f2);
+  color: #0f2a2a;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.theme-dark .rehab-home {
+  --rehab-bg-1: #060a10;
+  --rehab-bg-2: #0a121c;
+  --rehab-ink: #e9f2f7;
+  --rehab-sub: #8ea0b0;
+  --rehab-line: rgba(141, 231, 241, 0.24);
+  --rehab-glow: #8de7f1;
+  --rehab-card: rgba(10, 16, 24, 0.8);
+}
+
+.theme-dark .rehab-hero {
+  border: 1px solid rgba(46, 63, 79, 0.7);
+  background: rgba(10, 16, 24, 0.6);
+}
+
+.theme-dark .wireframe-glow {
+  background: radial-gradient(circle, rgba(141, 231, 241, 0.24), rgba(141, 231, 241, 0));
+}
+
+.theme-dark .rehab-ring-card {
+  border-color: rgba(46, 63, 79, 0.8);
+  background: rgba(10, 16, 24, 0.82);
+}
+
+.theme-dark .rehab-ring-bg {
+  stroke: rgba(138, 151, 166, 0.28);
+}
+
+.theme-dark .rehab-cta {
+  background: linear-gradient(135deg, #7ad6de, #6dc6ea);
+  color: #082026;
+}
