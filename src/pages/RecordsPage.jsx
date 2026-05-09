@@ -1,6 +1,7 @@
-﻿import React from "react";
+import React from "react";
 import SequentialScreen from "../components/SequentialScreen";
 import { MedicalExportPanel, RecoveryHeatmap, WeeklyBriefCard } from "../components/records/RecordsWidgets";
+import "./RecordsPage.module.css";
 
 const STORAGE_KEY = "rehab_sessions";
 
@@ -59,7 +60,7 @@ export default function RecordsPage() {
         parts={HEATMAP_PARTS}
         days={HEATMAP_DAYS}
         matrix={buildMatrix()}
-        onCellClick={(part, day, score) => setMessage(`${day} ${part} 회복 점수 ${score}점`) }
+        onCellClick={(part, day, score) => setMessage(`${day} ${part} 회복 점수 ${score}점`)}
       />
 
       <MedicalExportPanel defaultRange="최근 7일" onGenerateReport={handleGenerate} />
@@ -72,3 +73,4 @@ export default function RecordsPage() {
     </SequentialScreen>
   );
 }
+

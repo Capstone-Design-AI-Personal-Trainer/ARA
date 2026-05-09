@@ -1,6 +1,7 @@
 ﻿import React from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
+import { useAppContext } from "../contexts/AppContext";
 
 const BODY_PARTS = [
   { id: "neck", label: "목", x: 50, y: 14 },
@@ -25,7 +26,7 @@ function partLabel(id) {
 
 export default function DiagnosisPage() {
   const navigate = useNavigate();
-  const { diagnosis, setDiagnosis } = useOutletContext();
+  const { diagnosis, setDiagnosis } = useAppContext();
   const [selectedPart, setSelectedPart] = React.useState(null);
   const [painLevel, setPainLevel] = React.useState(diagnosis?.painLevel ?? 2);
   const [ripplePart, setRipplePart] = React.useState(null);
@@ -139,3 +140,6 @@ export default function DiagnosisPage() {
     </SequentialScreen>
   );
 }
+
+
+

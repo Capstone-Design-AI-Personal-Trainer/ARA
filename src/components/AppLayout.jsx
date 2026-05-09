@@ -1,6 +1,7 @@
 ﻿import React from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { IOSFrame } from "../ios-frame";
+import { AppContextProvider } from "../contexts/AppContext";
 
 const tabs = [
   { to: "/home", label: "홈", icon: "home" },
@@ -54,6 +55,7 @@ export default function AppLayout() {
   const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
   const isActiveTab = (to) => pathname === to || pathname.startsWith(`${to}/`);
   const appShellClass = pathname === "/home" ? "app-shell-react no-scroll" : "app-shell-react";
+  const appContextValue = { theme, isDark, diagnosis, setDiagnosis };
 
   return (
     <div className={`app-bg-wrap theme-${theme}`}>
@@ -67,7 +69,9 @@ export default function AppLayout() {
           )}
 
           <main ref={shellRef} className={appShellClass}>
-            <Outlet context={{ theme, isDark, diagnosis, setDiagnosis }} />
+            <AppContextProvider value={appContextValue}>
+              <Outlet />
+            </AppContextProvider>
           </main>
 
           {!hideNav && (
@@ -85,3 +89,6 @@ export default function AppLayout() {
     </div>
   );
 }
+
+
+

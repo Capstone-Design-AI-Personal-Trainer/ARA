@@ -1,6 +1,7 @@
 ﻿import React from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
+import { useAppContext } from "../contexts/AppContext";
 
 const parts = {
   "무릎": [
@@ -23,7 +24,7 @@ const parts = {
 export default function ExercisePage() {
   const [part, setPart] = React.useState("무릎");
   const navigate = useNavigate();
-  const { diagnosis } = useOutletContext();
+  const { diagnosis } = useAppContext();
 
   return (
     <SequentialScreen className="screen-react">
@@ -49,5 +50,8 @@ export default function ExercisePage() {
     </SequentialScreen>
   );
 }
+
+
+
 
 

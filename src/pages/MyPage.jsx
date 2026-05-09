@@ -61,7 +61,6 @@ export default function MyPage() {
   return (
     <SequentialScreen className="screen-react my-page-screen">
       <header className="my-head">
-        <p className="my-eyebrow">MY PAGE</p>
         <div className="row-between">
           <h2>마이페이지</h2>
           <button className="icon-gear" aria-label="설정">⚙</button>

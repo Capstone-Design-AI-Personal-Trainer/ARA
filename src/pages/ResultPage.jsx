@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
+import "./ResultPage.module.css";
 
 function fmtDuration(sec) {
   const m = Math.floor(sec / 60);
@@ -20,13 +21,9 @@ export default function ResultPage() {
 
   return (
     <SequentialScreen className="screen-react result-screen">
-      <div className="live-head">
-        <button className="hero-back" onClick={() => navigate("/exercise")}>‹</button>
-        <div>
-          <p className="diag-eyebrow">SESSION COMPLETE</p>
-          <h2 className="live-title">오늘도 잘 해냈어요</h2>
-          <p className="muted-react">지난 7일 중 가장 안정적인 세션이에요.</p>
-        </div>
+      <div className="result-head">
+        <h2 className="live-title">오늘도 잘 해냈어요</h2>
+        <p className="muted-react">지난 7일 중 가장 안정적인 세션이에요.</p>
       </div>
 
       <div className="glass-react card-react result-score-card">
@@ -83,3 +80,4 @@ export default function ResultPage() {
     </SequentialScreen>
   );
 }
+
