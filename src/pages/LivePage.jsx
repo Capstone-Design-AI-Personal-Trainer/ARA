@@ -248,9 +248,9 @@ export default function LivePage() {
     async function startSession() {
       try {
         setStatus("MediaPipe 모델 로딩 중...");
-        const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm");
+        const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/+esm");
         const fileset = await vision.FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
         );
         poseRef.current = await vision.PoseLandmarker.createFromOptions(fileset, {
           baseOptions: {
