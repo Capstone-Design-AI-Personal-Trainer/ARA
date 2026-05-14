@@ -16,6 +16,8 @@ body {
   font-family: Pretendard, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
+  line-height: 1.6;
+  letter-spacing: -0.02em;
 }
 .app-bg {
   position: fixed;
