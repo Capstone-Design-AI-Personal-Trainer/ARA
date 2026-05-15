@@ -75,7 +75,8 @@ export default function LoginPage() {
   };
 
   const handleOAuth2Login = (provider) => {
-    window.location.href = `http://localhost:8080/oauth2/authorization/${provider}`;
+    const mode = isLogin ? "login" : "signup";
+    window.location.href = `http://localhost:8080/oauth2/authorization/${provider}?mode=${mode}`;
   };
 
   return (
