@@ -51,6 +51,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     providerId = (String) naverResponse.get("id");
                 }
                 break;
+            default:
+                throw new OAuth2AuthenticationException("Unsupported OAuth2 provider: " + registrationId);
         }
 
         // 이메일 없으면 provider + id로 임시 이메일 생성
