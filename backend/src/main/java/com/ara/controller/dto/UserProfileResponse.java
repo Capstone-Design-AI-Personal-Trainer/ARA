@@ -14,6 +14,9 @@ public class UserProfileResponse {
     private String email;
     private String name;
     private String bio;
+    private Integer heightCm;
+    private Integer weightKg;
+    private String targetAreas;
     private Boolean voiceEnabled;
     private Boolean vibrationEnabled;
     private Boolean mirrorEnabled;

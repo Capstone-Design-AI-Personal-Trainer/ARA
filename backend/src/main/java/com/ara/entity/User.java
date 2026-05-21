@@ -41,6 +41,15 @@ public class User {
     
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    @Column(name = "height_cm")
+    private Integer heightCm;
+
+    @Column(name = "weight_kg")
+    private Integer weightKg;
+
+    @Column(name = "target_areas")
+    private String targetAreas;
     
     @Column(name = "provider_type")
     private String providerType; // LOCAL, GOOGLE, KAKAO, NAVER

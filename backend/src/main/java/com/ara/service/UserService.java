@@ -10,6 +10,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService {
 
+    private static final String DEMO_NAME = "김동국";
+    private static final int DEMO_HEIGHT_CM = 178;
+    private static final int DEMO_WEIGHT_KG = 65;
+    private static final String DEMO_TARGET_AREAS = "어깨, 허리";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -31,7 +36,10 @@ public class UserService {
         User user = User.builder()
             .email(email)
             .password(passwordEncoder.encode(password))
-            .name(name)
+            .name(DEMO_NAME)
+            .heightCm(DEMO_HEIGHT_CM)
+            .weightKg(DEMO_WEIGHT_KG)
+            .targetAreas(DEMO_TARGET_AREAS)
             .voiceEnabled(true)
             .vibrationEnabled(true)
             .mirrorEnabled(true)
@@ -56,7 +64,10 @@ public class UserService {
                         // 새 OAuth2 사용자 생성
                         User newUser = User.builder()
                             .email(email)
-                            .name(name)
+                            .name(DEMO_NAME)
+                            .heightCm(DEMO_HEIGHT_CM)
+                            .weightKg(DEMO_WEIGHT_KG)
+                            .targetAreas(DEMO_TARGET_AREAS)
                             .providerType(providerType)
                             .providerId(providerId)
                             .build();
@@ -71,11 +82,15 @@ public class UserService {
 
     public UserProfileResponse getUserProfile(String email) {
         User user = findByEmail(email);
+        ensureDemoProfile(user);
         return UserProfileResponse.builder()
             .id(user.getId())
             .email(user.getEmail())
             .name(user.getName())
             .bio(user.getBio())
+            .heightCm(user.getHeightCm())
+            .weightKg(user.getWeightKg())
+            .targetAreas(user.getTargetAreas())
             .voiceEnabled(user.getVoiceEnabled())
             .vibrationEnabled(user.getVibrationEnabled())
             .mirrorEnabled(user.getMirrorEnabled())
@@ -92,6 +107,15 @@ public class UserService {
         }
         if (request.getBio() != null) {
             user.setBio(request.getBio());
+        }
+        if (request.getHeightCm() != null) {
+            user.setHeightCm(request.getHeightCm());
+        }
+        if (request.getWeightKg() != null) {
+            user.setWeightKg(request.getWeightKg());
+        }
+        if (request.getTargetAreas() != null) {
+            user.setTargetAreas(request.getTargetAreas());
         }
         if (request.getVoiceEnabled() != null) {
             user.setVoiceEnabled(request.getVoiceEnabled());
@@ -113,11 +137,37 @@ public class UserService {
             .email(updatedUser.getEmail())
             .name(updatedUser.getName())
             .bio(updatedUser.getBio())
+            .heightCm(updatedUser.getHeightCm())
+            .weightKg(updatedUser.getWeightKg())
+            .targetAreas(updatedUser.getTargetAreas())
             .voiceEnabled(updatedUser.getVoiceEnabled())
             .vibrationEnabled(updatedUser.getVibrationEnabled())
             .mirrorEnabled(updatedUser.getMirrorEnabled())
             .reportEnabled(updatedUser.getReportEnabled())
             .createdAt(updatedUser.getCreatedAt() != null ? updatedUser.getCreatedAt().toString() : "")
             .build();
+    }
+
+    private void ensureDemoProfile(User user) {
+        boolean changed = false;
+        if (!DEMO_NAME.equals(user.getName())) {
+            user.setName(DEMO_NAME);
+            changed = true;
+        }
+        if (user.getHeightCm() == null) {
+            user.setHeightCm(DEMO_HEIGHT_CM);
+            changed = true;
+        }
+        if (user.getWeightKg() == null) {
+            user.setWeightKg(DEMO_WEIGHT_KG);
+            changed = true;
+        }
+        if (user.getTargetAreas() == null || user.getTargetAreas().isBlank()) {
+            user.setTargetAreas(DEMO_TARGET_AREAS);
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+        }
     }
 }

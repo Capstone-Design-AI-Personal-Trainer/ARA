@@ -1,44 +1,34 @@
 ﻿import React from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { apiFetch } from "../api";
 import SequentialScreen from "../components/SequentialScreen";
 import { useAppContext } from "../contexts/AppContext";
 
-const DETAIL_MAP = {
-  "wall-squat": {
-    title: "벽 스쿼트",
-    subtitle: "무릎 재활 · 10 min",
-    level: "하",
-    intro: [
-      "무릎 정렬 안정성을 돕는 기본 재활 운동입니다.",
-      "벽을 기준으로 내려가며 하중을 천천히 분산하세요.",
-      "통증이 있으면 범위를 줄여 진행합니다.",
-    ],
-    steps: ["준비자세", "엉덩이를 천천히 내리기", "무릎 정렬 유지하며 올라오기"],
-  },
-  "leg-raise": {
-    title: "레그 레이즈",
-    subtitle: "무릎 재활 · 10 min",
-    level: "중",
-    intro: ["대퇴사두근 활성화를 위한 기본 운동입니다.", "허리 들림 없이 코어를 고정하고 수행하세요."],
-    steps: ["준비자세", "다리를 천천히 들어올리기", "호흡 유지하며 내리기"],
-  },
-  "slow-lunge": {
-    title: "슬로우 런지",
-    subtitle: "무릎 재활 · 12 min",
-    level: "중",
-    intro: ["좌우 균형과 무릎 안정성을 동시에 강화합니다."],
-    steps: ["준비자세", "무릎이 안쪽으로 모이지 않게 하강", "중립 정렬로 복귀"],
-  },
-};
-
 function fallbackDetail(id, state) {
   return {
-    title: state?.name || id,
-    subtitle: `${state?.part || "재활"} · ${state?.minutes || "10 min"}`,
-    level: "중",
-    intro: ["관절 안정성 향상을 위한 재활 운동입니다."],
-    steps: ["준비자세", "권장 가동 범위에서 수행", "호흡 유지 후 종료"],
+    id,
+    name: state?.name || state?.title || id,
+    subtitle: state?.subtitle || `${state?.part || "재활"} · ${state?.minutes || "10 min"}`,
+    level: state?.level || "중",
+    intro: state?.intro || ["관절 안정성 향상을 위한 재활 운동입니다."],
+    steps: state?.steps || ["준비자세", "권장 가동 범위에서 수행", "호흡 유지 후 종료"],
+    guideVideoUrl: state?.guideVideoUrl || "",
+    futureMoves: state?.futureMoves || [],
   };
+}
+
+function normalizeDetail(id, state) {
+  if (!state?.detail) {
+    return null;
+  }
+  const detail = state.detail;
+  if (detail.intro && detail.steps) {
+    return {
+      ...fallbackDetail(id, state),
+      ...detail,
+    };
+  }
+  return fallbackDetail(id, { ...state, ...detail });
 }
 
 export default function ExerciseDetailPage() {
@@ -46,17 +36,59 @@ export default function ExerciseDetailPage() {
   const { id } = useParams();
   const { state } = useLocation();
   const { diagnosis } = useAppContext();
-  const detail = DETAIL_MAP[id] || fallbackDetail(id, state);
+  const [detail, setDetail] = React.useState(normalizeDetail(id, state));
+  const [loading, setLoading] = React.useState(!normalizeDetail(id, state));
+  const [error, setError] = React.useState();
+
+  React.useEffect(() => {
+    if (detail) return;
+    let active = true;
+    setLoading(true);
+    apiFetch(`/api/exercises/${id}`)
+      .then((data) => {
+        if (active) setDetail(data);
+      })
+      .catch((err) => {
+        console.error("Failed to load exercise detail:", err);
+        if (active) setError("운동 정보를 불러올 수 없습니다.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [detail, id]);
+
   const linkedDiagnosis = state?.diagnosis || (diagnosis?.updatedAt ? diagnosis : null);
   const backPath = state?.fromDiagnosis ? "/diagnosis" : "/exercise";
   const showAraRecommendation = Boolean(state?.fromDiagnosis);
+
+  if (loading) {
+    return (
+      <SequentialScreen className="screen-react">
+        <h2>운동 상세 정보를 불러오는 중</h2>
+        <p className="muted-react">잠시만 기다려주세요.</p>
+      </SequentialScreen>
+    );
+  }
+
+  if (error || !detail) {
+    return (
+      <SequentialScreen className="screen-react">
+        <h2>운동 정보를 불러올 수 없습니다.</h2>
+        <p className="muted-react">{error || "운동 데이터가 존재하지 않습니다."}</p>
+        <button className="btn-react primary" onClick={() => navigate(backPath)}>운동 목록으로 돌아가기</button>
+      </SequentialScreen>
+    );
+  }
 
   return (
     <SequentialScreen className="screen-react">
       <div className="exercise-hero card-react">
         <button className="hero-back" onClick={() => navigate(backPath)}>‹</button>
         <div className="hero-label">
-          <h3>{detail.title}</h3>
+          <h3>{detail.name}</h3>
           <div className="hero-meta">
             <span>{detail.subtitle}</span>
             <span>난이도 {detail.level}</span>
@@ -87,8 +119,8 @@ export default function ExerciseDetailPage() {
         </ol>
       </div>
 
-      <button className="btn-react primary detail-start" onClick={() => navigate("/live", { state: { exerciseId: id, exerciseName: detail.title, diagnosis: linkedDiagnosis } })}>
-        Start now
+      <button className="btn-react primary detail-start" onClick={() => navigate(`/guide/${id}`, { state: { exerciseId: id, exerciseName: detail.name, detail, diagnosis: linkedDiagnosis } })}>
+        가이드 영상 보기
       </button>
     </SequentialScreen>
   );
