@@ -2,12 +2,31 @@
 import { useNavigate } from "react-router-dom";
 import SequentialScreen from "../components/SequentialScreen";
 
+const BYPASS_LOGIN = ["true", "1", "yes", "on"].includes(
+  String(import.meta.env.VITE_BYPASS_LOGIN || "")
+    .trim()
+    .toLowerCase()
+);
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
 
   // OAuth2 로그인 성공 후 백엔드가 ?token=...&email=...&name=... 로 리다이렉트해줌
   useEffect(() => {
+    if (BYPASS_LOGIN) {
+      localStorage.setItem("token", "dev-bypass-token");
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          email: "dev@local.test",
+          name: "Dev User",
+        })
+      );
+      navigate("/home");
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     const email = params.get("email");
@@ -18,10 +37,11 @@ export default function LoginPage() {
       navigate("/home");
     }
   }, [navigate]);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    name: ""
+    name: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +49,7 @@ export default function LoginPage() {
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -38,9 +58,23 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    if (BYPASS_LOGIN) {
+      localStorage.setItem("token", "dev-bypass-token");
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          email: formData.email || "dev@local.test",
+          name: formData.name || "Dev User",
+        })
+      );
+      navigate("/home");
+      setLoading(false);
+      return;
+    }
+
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
-      const body = isLogin 
+      const body = isLogin
         ? { email: formData.email, password: formData.password }
         : { email: formData.email, password: formData.password, name: formData.name };
 
@@ -57,11 +91,14 @@ export default function LoginPage() {
       if (response.ok) {
         // JWT 토큰 저장
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify({
-          email: data.email,
-          name: data.name
-        }));
-        
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            email: data.email,
+            name: data.name,
+          })
+        );
+
         navigate("/home");
       } else {
         setError(data.message || "오류가 발생했습니다.");
@@ -87,79 +124,68 @@ export default function LoginPage() {
       </header>
       <div className="glass-react card-react">
         <div style={{ marginBottom: "20px", textAlign: "center" }}>
-          <button 
-            className={`btn-react ${isLogin ? 'primary' : ''}`} 
+          <button
+            className={`btn-react ${isLogin ? "primary" : ""}`}
             onClick={() => setIsLogin(true)}
             style={{ marginRight: "10px" }}
           >
             로그인
           </button>
-          <button 
-            className={`btn-react ${!isLogin ? 'primary' : ''}`} 
-            onClick={() => setIsLogin(false)}
-          >
+          <button className={`btn-react ${!isLogin ? "primary" : ""}`} onClick={() => setIsLogin(false)}>
             회원가입
           </button>
         </div>
 
         <form className="stack" onSubmit={handleSubmit}>
           {!isLogin && (
-            <input 
-              className="field-react" 
-              placeholder="이름" 
-              type="text" 
+            <input
+              className="field-react"
+              placeholder="이름"
+              type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              required={!isLogin} 
+              required={!isLogin}
             />
           )}
-          <input 
-            className="field-react" 
-            placeholder="이메일" 
-            type="email" 
+          <input
+            className="field-react"
+            placeholder="이메일"
+            type="email"
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            required 
+            required
           />
-          <input 
-            className="field-react" 
-            placeholder="비밀번호" 
-            type="password" 
+          <input
+            className="field-react"
+            placeholder="비밀번호"
+            type="password"
             name="password"
             value={formData.password}
             onChange={handleInputChange}
-            required 
+            required
           />
-          
-          {error && (
-            <div style={{ color: "red", fontSize: "14px", marginBottom: "10px" }}>
-              {error}
-            </div>
-          )}
-          
-          <button 
-            className="btn-react primary" 
-            type="submit" 
-            disabled={loading}
-          >
-            {loading ? "처리 중..." : (isLogin ? "로그인" : "회원가입")}
+
+          {error && <div style={{ color: "red", fontSize: "14px", marginBottom: "10px" }}>{error}</div>}
+
+          <button className="btn-react primary" type="submit" disabled={loading}>
+            {loading ? "처리 중..." : isLogin ? "로그인" : "회원가입"}
           </button>
         </form>
 
         <div style={{ marginTop: "20px", textAlign: "center" }}>
           <p style={{ marginBottom: "10px", color: "#666" }}>또는</p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button 
-              className="btn-react" 
+            <button
+              className="btn-react"
               onClick={() => handleOAuth2Login("kakao")}
               style={{ backgroundColor: "#fee500", color: "#000" }}
             >
               Kakao
             </button>
-            <button 
-              className="btn-react" 
+            <button
+              className="btn-react"
               onClick={() => handleOAuth2Login("naver")}
               style={{ backgroundColor: "#03c75a", color: "white" }}
             >
@@ -171,4 +197,3 @@ export default function LoginPage() {
     </SequentialScreen>
   );
 }
-

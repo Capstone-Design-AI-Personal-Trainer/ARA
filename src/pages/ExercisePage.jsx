@@ -11,9 +11,8 @@ const FALLBACK_EXERCISES = [
   { id: "bird-dog", name: "버드독", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "bridge", name: "브릿지", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "dead-bug", name: "데드버그", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
-  { id: "shoulder-abduction", name: "어깨 외전", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/Lyhpfw_tP5c" },
-  { id: "band-rotation", name: "밴드 외회전", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
-  { id: "scapula-retraction", name: "견갑골 모으기", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
+  { id: "shoulder-abduction-adduction", name: "Shoulder Abduction-Adduction", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/Lyhpfw_tP5c" },
+  { id: "front-raise", name: "Front Raise", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "wall-slide", name: "벽 슬라이드", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/i_0zLUcE-zk" },
 ];
 
