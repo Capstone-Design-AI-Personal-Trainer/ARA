@@ -26,7 +26,7 @@ export default function SequentialScreen({ className = "", children }) {
   return (
     <motion.section className={className} variants={container} initial="hidden" animate="show">
       {nodes.map((child, idx) => (
-        <motion.div key={idx} variants={item}>
+        <motion.div key={child.key ?? idx} variants={item}>
           {child}
         </motion.div>
       ))}

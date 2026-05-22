@@ -59,7 +59,7 @@ export function WeeklyBriefCard({ period, accuracyDelta, painBefore, painAfter, 
 
 export function RecoveryHeatmap({ parts, days, matrix, onCellClick }) {
   return (
-    <article className="glass-react card-react">
+    <article className="glass-react card-react records-heatmap">
       <div className="row-between">
         <h3>부위별 회복 히트맵</h3>
         <span className="muted-react">최근 7일</span>
@@ -101,7 +101,7 @@ export function MedicalExportPanel({ defaultRange = "최근 7일", onGenerateRep
   const [anonymized, setAnonymized] = React.useState(true);
 
   return (
-    <article className="glass-react card-react">
+    <article className="glass-react card-react records-export-panel">
       <h3>의료 공유용 요약 내보내기</h3>
       <div className="records-export-options">
         <label className="records-label">기간</label>
