@@ -6,12 +6,54 @@ import {
   buildPoseSignals,
   calcCoachMessage,
   calcPostureScore,
+  computeBodyMetrics,
+  computeScaleFromMetrics,
   drawSkeleton,
+  findBestGtInWindow,
+  transformGtFrame,
 } from "../features/live/poseUtils";
 
 const TARGET_REPS = 12;
 const FORCE_SCAN_PASS = import.meta.env.VITE_FORCE_SCAN_PASS === "true";
 const UI_UPDATE_MS = 120;
+
+function normalizeGtPayload(payload) {
+  if (!payload) return { frames: [], fps: 30 };
+  const fps = payload.fps || payload.meta?.fps || 30;
+  const rawFrames = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload.frames)
+      ? payload.frames
+      : Array.isArray(payload.poseFrames)
+        ? payload.poseFrames
+        : [];
+
+  const frames = rawFrames
+    .map((frame) => {
+      const points = Array.isArray(frame)
+        ? frame
+        : Array.isArray(frame?.landmarks)
+          ? frame.landmarks
+          : Array.isArray(frame?.pose)
+            ? frame.pose
+            : Array.isArray(frame?.points)
+              ? frame.points
+              : null;
+      if (!points) return null;
+      return points.map((p) => {
+        if (!p || typeof p.x !== "number" || typeof p.y !== "number") return null;
+        return {
+          x: p.x,
+          y: p.y,
+          z: typeof p.z === "number" ? p.z : 0,
+          visibility: typeof p.visibility === "number" ? p.visibility : 1,
+        };
+      });
+    })
+    .filter(Boolean);
+
+  return { frames, fps };
+}
 
 function ScanPanel({ countdown, checks }) {
   return (
@@ -70,6 +112,11 @@ export default function LivePage() {
   const repStateRef = React.useRef("closed");
   const scoreSamplesRef = React.useRef([]);
   const lastUiUpdateRef = React.useRef(0);
+  const calibrationSamplesRef = React.useRef([]);
+  const calibrationRef = React.useRef(null);
+  const gtFramesRef = React.useRef([]);
+  const gtFpsRef = React.useRef(30);
+  const gtMetricsRef = React.useRef(null);
 
   const [status, setStatus] = React.useState("카메라 연결 준비 중...");
   const [stage, setStage] = React.useState("scan");
@@ -159,6 +206,62 @@ export default function LivePage() {
 
       if (result.landmarks && result.landmarks[0]) {
         const lm = result.landmarks[0];
+
+        if (stage === "scan") {
+          const metrics = computeBodyMetrics(lm);
+          if (metrics) {
+            calibrationSamplesRef.current.push(metrics);
+            if (calibrationSamplesRef.current.length > 90) calibrationSamplesRef.current.shift();
+          }
+        }
+
+        if (stage === "live" && !calibrationRef.current && calibrationSamplesRef.current.length) {
+          const samples = calibrationSamplesRef.current;
+          const n = samples.length;
+          calibrationRef.current = {
+            shoulderWidth: samples.reduce((acc, s) => acc + s.shoulderWidth, 0) / n,
+            hipWidth: samples.reduce((acc, s) => acc + s.hipWidth, 0) / n,
+            torsoLen: samples.reduce((acc, s) => acc + s.torsoLen, 0) / n,
+            center: {
+              x: samples.reduce((acc, s) => acc + s.center.x, 0) / n,
+              y: samples.reduce((acc, s) => acc + s.center.y, 0) / n,
+            },
+          };
+        }
+
+        let gtMatch = null;
+        if (stage === "live" && gtFramesRef.current.length && calibrationRef.current && gtMetricsRef.current) {
+          const elapsedSec = Math.max(0, (Date.now() - sessionStartRef.current) / 1000);
+          const liveMetrics = computeBodyMetrics(lm) || calibrationRef.current;
+          const scale = computeScaleFromMetrics(calibrationRef.current, gtMetricsRef.current);
+          gtMatch = findBestGtInWindow({
+            elapsedSec,
+            gtFrames: gtFramesRef.current,
+            gtFps: gtFpsRef.current,
+            windowSec: 0.45,
+            userLm: lm,
+            gtMetrics: gtMetricsRef.current,
+            userMetrics: liveMetrics,
+            scale,
+            minVisibility: 0.4,
+          });
+
+          const renderGt = gtMatch?.adjustedGt
+            || transformGtFrame(
+              gtFramesRef.current[Math.floor(elapsedSec * gtFpsRef.current) % gtFramesRef.current.length],
+              gtMetricsRef.current.center,
+              liveMetrics.center,
+              scale
+            );
+          drawSkeleton(ctx, renderGt, canvas.width, canvas.height, {
+            lineWidth: 1.6,
+            lineColor: "rgba(255,159,67,0.82)",
+            pointColor: "rgba(255,200,120,0.85)",
+            pointRadius: 3.2,
+            minVisibility: 0.35,
+          });
+        }
+
         drawSkeleton(ctx, lm, canvas.width, canvas.height);
 
         const {
@@ -169,7 +272,7 @@ export default function LivePage() {
           allGood,
           open,
           closed,
-        } = buildPoseSignals(lm);
+        } = buildPoseSignals(lm, calibrationRef.current);
         const nextChecks = { face: faceOk, shoulder: shoulderOk, pelvis: pelvisOk, feet: feetOk };
 
         if (stage === "scan" && !FORCE_SCAN_PASS) {
@@ -202,14 +305,18 @@ export default function LivePage() {
           }
 
           const postureScore = calcPostureScore({ faceOk, shoulderOk, pelvisOk, feetOk });
-          scoreSamplesRef.current.push(postureScore);
+          const gtScore = gtMatch?.frameScore ?? postureScore;
+          const stabilityScore = allGood ? 100 : 72;
+          const combinedScore = Math.round(gtScore * 0.6 + postureScore * 0.3 + stabilityScore * 0.1);
+
+          scoreSamplesRef.current.push(combinedScore);
           if (scoreSamplesRef.current.length > 240) scoreSamplesRef.current.shift();
 
           if (now - lastUiUpdateRef.current >= UI_UPDATE_MS) {
             lastUiUpdateRef.current = now;
             const rolling = Math.round(scoreSamplesRef.current.reduce((a, b) => a + b, 0) / scoreSamplesRef.current.length);
             setAccuracy((prev) => {
-              const next = Math.max(55, Math.min(99, rolling));
+              const next = Math.max(45, Math.min(99, rolling));
               return prev === next ? prev : next;
             });
 
@@ -248,6 +355,23 @@ export default function LivePage() {
     async function startSession() {
       try {
         setStatus("MediaPipe 모델 로딩 중...");
+        const gtCandidates = ["/gt_pose_clean.json", "/data/gt_pose_clean.json"];
+        for (const path of gtCandidates) {
+          try {
+            const res = await fetch(path);
+            if (!res.ok) continue;
+            const payload = await res.json();
+            const { frames, fps } = normalizeGtPayload(payload);
+            if (!frames.length) continue;
+            gtFramesRef.current = frames;
+            gtFpsRef.current = Number.isFinite(fps) && fps > 0 ? fps : 30;
+            gtMetricsRef.current = computeBodyMetrics(frames[0]);
+            break;
+          } catch (e) {
+            console.warn("GT load failed:", path, e);
+          }
+        }
+
         const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/+esm");
         const fileset = await vision.FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"

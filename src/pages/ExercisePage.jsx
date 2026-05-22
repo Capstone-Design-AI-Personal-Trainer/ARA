@@ -15,8 +15,8 @@ const parts = {
     { id: "dead-bug", name: "데드버그", minutes: "8~12분" },
   ],
   "어깨": [
-    { id: "band-rotation", name: "밴드 외회전", minutes: "8~12분" },
-    { id: "scapula-retraction", name: "스캐플라 리트랙션", minutes: "8~12분" },
+    { id: "shoulder-abduction-adduction", name: "Shoulder Abduction-Adduction", minutes: "8~12분" },
+    { id: "front-raise", name: "Front Raise", minutes: "8~12분" },
     { id: "wall-slide", name: "월 슬라이드", minutes: "8~12분" },
   ],
 };
