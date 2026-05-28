@@ -1,5 +1,6 @@
 # dependencies
 node_modules/
+.venv312/
 
 # build output
 dist/
@@ -23,3 +24,13 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# generated pose data artifacts
+data/raw_video/*
+data/raw_pose/*
+data/clean_pose/*
+data/preview/*
+!data/raw_video/.gitkeep
+!data/raw_pose/.gitkeep
+!data/clean_pose/.gitkeep
+!data/preview/.gitkeep
