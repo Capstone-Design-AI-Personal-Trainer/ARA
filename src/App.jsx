@@ -1,17 +1,17 @@
 ﻿import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
-import LoginPage from "./pages/LoginPage";
-import HomePage from "./pages/HomePage";
-import ExercisePage from "./pages/ExercisePage";
-import ExerciseDetailPage from "./pages/ExerciseDetailPage";
-import GuidePage from "./pages/GuidePage";
-import ReplayPage from "./pages/ReplayPage";
-import DiagnosisPage from "./pages/DiagnosisPage";
-import LivePage from "./pages/LivePage";
-import ResultPage from "./pages/ResultPage";
-import RecordsPage from "./pages/RecordsPage";
-import MyPage from "./pages/MyPage";
+import LoginPage from "./pages/auth/LoginPage";
+import HomePage from "./pages/home/HomePage";
+import ExercisePage from "./pages/exercise/ExercisePage";
+import ExerciseDetailPage from "./pages/exercise/ExerciseDetailPage";
+import GuidePage from "./pages/exercise/GuidePage";
+import ReplayPage from "./pages/workout/ReplayPage";
+import DiagnosisPage from "./pages/workout/DiagnosisPage";
+import LivePage from "./pages/workout/LivePage";
+import ResultPage from "./pages/workout/ResultPage";
+import RecordsPage from "./pages/records/RecordsPage";
+import MyPage from "./pages/user/MyPage";
 
 export default function App() {
   return (

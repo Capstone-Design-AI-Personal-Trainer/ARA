@@ -6,6 +6,13 @@ node_modules/
 dist/
 build/
 
+# generated GT source videos
+data/ground-truth/videos/*.mp4
+data/ground-truth/models/*.task
+
+# local python environment
+.venv-pose/
+
 # local env files
 .env
 .env.local
@@ -18,6 +25,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# python cache
+__pycache__/
+*.pyc
 
 # editor/system
 .DS_Store

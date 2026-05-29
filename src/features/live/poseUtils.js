@@ -4,7 +4,34 @@ const SKELETON_LINKS = [
   [24, 26], [26, 28],
 ];
 
-export function drawSkeleton(ctx, pose, w, h, options = {}) {
+function getCoverRect(canvasWidth, canvasHeight, videoWidth, videoHeight) {
+  if (!videoWidth || !videoHeight) {
+    return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+  }
+
+  const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+  const width = videoWidth * scale;
+  const height = videoHeight * scale;
+
+  return {
+    x: (canvasWidth - width) / 2,
+    y: (canvasHeight - height) / 2,
+    width,
+    height,
+  };
+}
+
+function getCoverPoint(point, rect) {
+  return {
+    x: rect.x + (1 - point.x) * rect.width,
+    y: rect.y + point.y * rect.height,
+  };
+}
+
+export function drawSkeleton(ctx, pose, canvasWidth, canvasHeight, videoWidthOrOptions, videoHeight) {
+  const options = typeof videoWidthOrOptions === "object" && videoWidthOrOptions !== null
+    ? videoWidthOrOptions
+    : {};
   const {
     lineWidth = 2,
     lineColor = "rgba(111,207,205,0.9)",
@@ -12,26 +39,35 @@ export function drawSkeleton(ctx, pose, w, h, options = {}) {
     pointRadius = 3.8,
     minVisibility = 0.45,
   } = options;
-
   const links = [
     ...SKELETON_LINKS,
   ];
+  const rect = getCoverRect(
+    canvasWidth,
+    canvasHeight,
+    typeof videoWidthOrOptions === "number" ? videoWidthOrOptions : undefined,
+    videoHeight
+  );
+
   ctx.lineWidth = lineWidth;
   links.forEach(([aIdx, bIdx]) => {
     const a = pose[aIdx];
     const b = pose[bIdx];
     if (!a || !b || a.visibility < minVisibility || b.visibility < minVisibility) return;
+    const start = getCoverPoint(a, rect);
+    const end = getCoverPoint(b, rect);
     ctx.strokeStyle = lineColor;
     ctx.beginPath();
-    ctx.moveTo((1 - a.x) * w, a.y * h);
-    ctx.lineTo((1 - b.x) * w, b.y * h);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
     ctx.stroke();
   });
   pose.forEach((p) => {
     if (!p || p.visibility < minVisibility) return;
+    const point = getCoverPoint(p, rect);
     ctx.fillStyle = pointColor;
     ctx.beginPath();
-    ctx.arc((1 - p.x) * w, p.y * h, pointRadius, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, pointRadius, 0, Math.PI * 2);
     ctx.fill();
   });
 }
