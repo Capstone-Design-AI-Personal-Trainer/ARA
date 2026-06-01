@@ -2,6 +2,8 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch, toSessionView } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
+import { MedicalExportPanel } from "../../components/records/RecordsWidgets";
+import { getWorkoutRecordings } from "../../features/junyoung/recording/workoutRecordingStore";
 
 function toDateLabel(iso) {
   const date = new Date(iso);
@@ -9,11 +11,32 @@ function toDateLabel(iso) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function formatDuration(seconds = 0) {
+  if (!seconds) return "0초";
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  if (!min) return `${sec}초`;
+  return `${min}분 ${sec}초`;
+}
+
+const MY_PANEL_ITEMS = [
+  { id: "body", label: "신체 기준값" },
+  { id: "profile", label: "내 정보 저장" },
+  { id: "doctor", label: "주치의 등록" },
+  { id: "medical", label: "의료 공유용 요약 내보내기" },
+  { id: "pending", label: "저장 대기 기록" },
+  { id: "saved", label: "내 저장 기록" },
+  { id: "settings", label: "앱 설정" },
+];
+
 export default function MyPage() {
   const { state } = useLocation();
   const [sessions, setSessions] = React.useState([]);
   const [pending, setPending] = React.useState(state?.pendingSession || null);
   const [doctors, setDoctors] = React.useState([]);
+  const [reports, setReports] = React.useState([]);
+  const [recordingsById, setRecordingsById] = React.useState({});
+  const [reportMessage, setReportMessage] = React.useState("");
   const [profile, setProfile] = React.useState({
     name: "김동국",
     heightCm: 178,
@@ -33,17 +56,32 @@ export default function MyPage() {
     mirror: true,
     report: false,
   });
+  const [activePanel, setActivePanel] = React.useState(null);
   const [selectedDay, setSelectedDay] = React.useState(null);
   const navigate = useNavigate();
 
   React.useEffect(() => {
     apiFetch("/api/exercise-sessions")
-      .then((data) => setSessions(data.map(toSessionView)))
+      .then(async (data) => {
+        const sessionViews = data.map(toSessionView);
+        setSessions(sessionViews);
+        try {
+          const recordings = await getWorkoutRecordings(sessionViews.map((session) => String(session.recordingKey || session.id)));
+          setRecordingsById(Object.fromEntries(recordings.map((recording) => [recording.id, recording])));
+        } catch (error) {
+          console.error("Failed to load local recordings:", error);
+          setRecordingsById({});
+        }
+      })
       .catch((error) => console.error("Failed to load exercise sessions:", error));
 
     apiFetch("/api/doctors")
       .then(setDoctors)
       .catch((error) => console.error("Failed to load doctors:", error));
+
+    apiFetch("/api/medical-reports")
+      .then(setReports)
+      .catch((error) => console.error("Failed to load medical reports:", error));
 
     apiFetch("/api/users/profile")
       .then((data) => setProfile({
@@ -72,6 +110,20 @@ export default function MyPage() {
       setPending(null);
     } catch (error) {
       console.error("Failed to save pending session:", error);
+    }
+  };
+
+  const handleGenerateReport = async ({ range, anonymized }) => {
+    try {
+      const report = await apiFetch("/api/medical-reports", {
+        method: "POST",
+        body: JSON.stringify({ range, anonymized }),
+      });
+      setReports((prev) => [report, ...prev]);
+      setReportMessage(`리포트 저장 완료 · ${report.summary}`);
+    } catch (error) {
+      console.error("Failed to save medical report:", error);
+      setReportMessage("리포트 저장에 실패했습니다.");
     }
   };
 
@@ -153,24 +205,27 @@ export default function MyPage() {
 
   const handleDateClick = (day) => {
     setSelectedDay(day);
-    const sessionForDay = sessions.find((session) => {
-      const date = new Date(session.createdAt || session.completedAt);
-      return date.getDate() === day;
-    });
-    if (sessionForDay) {
-      navigate(`/replay/${sessionForDay.id}`);
-    }
   };
+
+  const selectedDaySessions = React.useMemo(() => {
+    if (selectedDay === null) return [];
+    return sessions.filter((session) => {
+      const date = new Date(session.createdAt || session.completedAt);
+      return !Number.isNaN(date.getTime()) && date.getDate() === selectedDay;
+    });
+  }, [selectedDay, sessions]);
 
   const attendanceDays = sessionDays;
   const primaryDoctor = doctors[0];
+  const daysInCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const panelTitle = MY_PANEL_ITEMS.find((item) => item.id === activePanel)?.label;
 
   return (
     <SequentialScreen className="screen-react my-page-screen">
       <header className="my-head">
         <div className="row-between">
           <h2>마이페이지</h2>
-          <button className="icon-gear" aria-label="설정">⚙</button>
+          <button className="icon-gear" aria-label="설정" onClick={() => setActivePanel("settings")}>⚙</button>
         </div>
       </header>
 
@@ -179,56 +234,12 @@ export default function MyPage() {
         <div>
           <h3>{profile.name || "김동국"}</h3>
           <p className="my-muted">{profile.heightCm || 178} cm · {profile.weightKg || 65} kg</p>
-          <span className="rank-badge">RANK A · LV 14</span>
         </div>
       </div>
 
-      <div className="my-stats">
-        <div className="my-card"><p className="my-muted">연속 일수</p><strong>14일</strong></div>
-        <div className="my-card"><p className="my-muted">평균 정확도</p><strong>{sessions.length ? Math.round(sessions.reduce((sum, s) => sum + (s.score || 0), 0) / sessions.length) : 78}%</strong></div>
-        <div className="my-card"><p className="my-muted">총 운동</p><strong>{sessions.length}회</strong></div>
-      </div>
-
-      <div className="my-card">
-        <p className="my-section-title">신체 기준값</p>
-        <div className="my-list">
-          <div><span>키</span><span>{profile.heightCm || 178} cm</span></div>
-          <div><span>몸무게</span><span>{profile.weightKg || 65} kg</span></div>
-          <div><span>목표 부위</span><span>{profile.targetAreas || "어깨, 허리"}</span></div>
-          <div>
-            <span>주치의</span>
-            <span>{primaryDoctor ? `${primaryDoctor.hospital || ""} ${primaryDoctor.name}`.trim() : "미등록"}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="my-card">
-        <p className="my-section-title">내 정보 저장</p>
-        <form className="stack" onSubmit={onSaveProfile}>
-          <input className="field-react" name="name" placeholder="이름" value={profile.name} onChange={onProfileChange} />
-          <input className="field-react" name="heightCm" placeholder="키(cm)" type="number" value={profile.heightCm} onChange={onProfileChange} />
-          <input className="field-react" name="weightKg" placeholder="몸무게(kg)" type="number" value={profile.weightKg} onChange={onProfileChange} />
-          <input className="field-react" name="targetAreas" placeholder="목표 부위" value={profile.targetAreas} onChange={onProfileChange} />
-          <input className="field-react" name="bio" placeholder="메모" value={profile.bio} onChange={onProfileChange} />
-          <button className="btn-react primary" type="submit">내 정보 저장</button>
-        </form>
-      </div>
-
-      <div className="my-card">
-        <p className="my-section-title">주치의 등록</p>
-        <form className="stack" onSubmit={onAddDoctor}>
-          <input className="field-react" name="hospital" placeholder="병원명" value={doctorForm.hospital} onChange={onDoctorChange} />
-          <input className="field-react" name="name" placeholder="의사 이름" value={doctorForm.name} onChange={onDoctorChange} required />
-          <input className="field-react" name="department" placeholder="진료과" value={doctorForm.department} onChange={onDoctorChange} />
-          <input className="field-react" name="phone" placeholder="연락처" value={doctorForm.phone} onChange={onDoctorChange} />
-          <button className="btn-react primary" type="submit">주치의 저장</button>
-        </form>
-      </div>
-
-      <div className="my-card">
-        <p className="my-section-title">이번 달 출석</p>
+      {!activePanel ? <div className="my-card">
         <div className="calendar-box">
-          {Array.from({ length: 28 }, (_, idx) => {
+          {Array.from({ length: daysInCurrentMonth }, (_, idx) => {
             const day = idx + 1;
             const active = attendanceDays.includes(day);
             const today = day === new Date().getDate();
@@ -245,15 +256,113 @@ export default function MyPage() {
           })}
         </div>
         {selectedDay !== null ? (
-          <p className="muted-react" style={{ marginTop: 12 }}>
-            {attendanceDays.includes(selectedDay)
-              ? `${selectedDay}일 기록이 있어 녹화 영상 보기로 이동합니다.`
-              : `${selectedDay}일에는 저장된 기록이 없습니다.`}
-          </p>
+          <div className="stack" style={{ marginTop: 12 }}>
+            {selectedDaySessions.length ? (
+              selectedDaySessions.map((session) => {
+                const hasRecording = Boolean(session.hasRecording || recordingsById[String(session.recordingKey || session.id)]);
+                return (
+                  <div key={session.id} className="session-item my-session-item row-between">
+                    <div>
+                      <strong>{session.exerciseName || session.memo}</strong>
+                      <p className="my-muted">
+                        정확도 {session.score ?? 0}% · {session.reps ?? 0}{session.targetReps ? `/${session.targetReps}` : ""}회 · {formatDuration(session.durationSec)}
+                      </p>
+                    </div>
+                    <button className="btn-react" onClick={() => navigate(`/replay/${session.id}`)}>
+                      {hasRecording ? "녹화 보기" : "기록 보기"}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="my-muted">{selectedDay}일에는 저장된 재활 기록이 없습니다.</p>
+            )}
+          </div>
         ) : null}
-      </div>
+      </div> : null}
 
-      <div className="my-card">
+      {!activePanel ? (
+        <div className="my-card my-menu-list">
+          {MY_PANEL_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              className="my-menu-row"
+              type="button"
+              onClick={() => setActivePanel(item.id)}
+            >
+              <span>
+                {item.label}
+                {item.id === "medical" && reports.length ? <em>{reports.length}</em> : null}
+                {item.id === "saved" && sessions.length ? <em>{sessions.length}</em> : null}
+                {item.id === "pending" && pending ? <em>1</em> : null}
+              </span>
+              <span className="my-menu-chevron">›</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button className="my-panel-back" type="button" onClick={() => setActivePanel(null)}>
+          <span>‹</span>
+          <strong>{panelTitle}</strong>
+          <em>목록으로</em>
+        </button>
+      )}
+
+      {activePanel === "body" ? <div className="my-card">
+        <p className="my-section-title">신체 기준값</p>
+        <div className="my-list">
+          <div><span>키</span><span>{profile.heightCm || 178} cm</span></div>
+          <div><span>몸무게</span><span>{profile.weightKg || 65} kg</span></div>
+          <div><span>목표 부위</span><span>{profile.targetAreas || "어깨, 허리"}</span></div>
+          <div>
+            <span>주치의</span>
+            <span>{primaryDoctor ? `${primaryDoctor.hospital || ""} ${primaryDoctor.name}`.trim() : "미등록"}</span>
+          </div>
+        </div>
+      </div> : null}
+
+      {activePanel === "profile" ? <div className="my-card">
+        <p className="my-section-title">내 정보 저장</p>
+        <form className="stack" onSubmit={onSaveProfile}>
+          <input className="field-react" name="name" placeholder="이름" value={profile.name} onChange={onProfileChange} />
+          <input className="field-react" name="heightCm" placeholder="키(cm)" type="number" value={profile.heightCm} onChange={onProfileChange} />
+          <input className="field-react" name="weightKg" placeholder="몸무게(kg)" type="number" value={profile.weightKg} onChange={onProfileChange} />
+          <input className="field-react" name="targetAreas" placeholder="목표 부위" value={profile.targetAreas} onChange={onProfileChange} />
+          <input className="field-react" name="bio" placeholder="메모" value={profile.bio} onChange={onProfileChange} />
+          <button className="btn-react primary" type="submit">내 정보 저장</button>
+        </form>
+      </div> : null}
+
+      {activePanel === "doctor" ? <div className="my-card">
+        <p className="my-section-title">주치의 등록</p>
+        <form className="stack" onSubmit={onAddDoctor}>
+          <input className="field-react" name="hospital" placeholder="병원명" value={doctorForm.hospital} onChange={onDoctorChange} />
+          <input className="field-react" name="name" placeholder="의사 이름" value={doctorForm.name} onChange={onDoctorChange} required />
+          <input className="field-react" name="department" placeholder="진료과" value={doctorForm.department} onChange={onDoctorChange} />
+          <input className="field-react" name="phone" placeholder="연락처" value={doctorForm.phone} onChange={onDoctorChange} />
+          <button className="btn-react primary" type="submit">주치의 저장</button>
+        </form>
+      </div> : null}
+
+      {activePanel === "medical" ? <MedicalExportPanel defaultRange="최근 7일" onGenerateReport={handleGenerateReport} /> : null}
+
+      {activePanel === "medical" ? <div className="my-card">
+        <p className="my-section-title">저장된 의료 리포트</p>
+        {reports.length ? (
+          <div className="stack">
+            {reports.slice(0, 5).map((report) => (
+              <p key={report.id} className="my-muted">
+                {report.summary} · {report.anonymized ? "익명" : "실명"}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="my-muted">저장된 리포트가 없습니다.</p>
+        )}
+        {reportMessage ? <p className="muted-react" style={{ marginTop: 10 }}>{reportMessage}</p> : null}
+      </div> : null}
+
+      {activePanel === "settings" ? <div className="my-card">
         <p className="my-section-title">앱 설정</p>
         <div className="my-list">
           <button className="setting-row" onClick={() => toggleSetting("voice")}><span>음성 코칭</span><span className={`toggle ${settings.voice ? "on" : ""}`} /></button>
@@ -262,9 +371,9 @@ export default function MyPage() {
           <button className="setting-row" onClick={() => toggleSetting("report")}><span>병원 자동 리포트</span><span className={`toggle ${settings.report ? "on" : ""}`} /></button>
           <div><span>텍스트 크기</span><span>중간 ›</span></div>
         </div>
-      </div>
+      </div> : null}
 
-      <div className="my-card">
+      {activePanel === "pending" ? <div className="my-card">
         <p className="my-section-title">저장 대기 기록</p>
         {pending ? (
           <div className="stack">
@@ -277,9 +386,9 @@ export default function MyPage() {
         ) : (
           <p className="my-muted">현재 저장 대기 중인 기록이 없습니다.</p>
         )}
-      </div>
+      </div> : null}
 
-      <div className="my-card">
+      {activePanel === "saved" ? <div className="my-card">
         <p className="my-section-title">내 저장 기록</p>
         {sessions.length ? (
           <div className="stack">
@@ -296,10 +405,10 @@ export default function MyPage() {
         ) : (
           <p className="my-muted">저장된 기록이 없습니다.</p>
         )}
-      </div>
+      </div> : null}
 
-      <button className="logout-btn">로그아웃</button>
-      <p className="my-version">ARA · v1.4.2</p>
+      {activePanel === "settings" ? <button className="logout-btn">로그아웃</button> : null}
+      {activePanel === "settings" ? <p className="my-version">ARA · v1.4.2</p> : null}
     </SequentialScreen>
   );
 }

@@ -4,22 +4,42 @@ import { apiFetch } from "../../api";
 import GuideVideo from "../../components/GuideVideo";
 import SequentialScreen from "../../components/SequentialScreen";
 
+const DEFAULT_STEPS = ["준비자세", "권장 가동 범위에서 수행", "호흡 유지 후 종료"];
+
+function normalizeDetail(id, detail) {
+  if (!detail) return null;
+
+  return {
+    id,
+    name: detail.name || id,
+    subtitle: detail.subtitle || `${detail.part || "재활"} · 10 min`,
+    level: detail.level || "중",
+    intro: Array.isArray(detail.intro) && detail.intro.length
+      ? detail.intro
+      : ["관절 안정성 향상을 위한 재활 운동입니다."],
+    steps: Array.isArray(detail.steps) && detail.steps.length ? detail.steps : DEFAULT_STEPS,
+    guideVideoUrl: detail.guideVideoUrl || "",
+    futureMoves: Array.isArray(detail.futureMoves) ? detail.futureMoves : [],
+  };
+}
+
 export default function GuidePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
-  const [detail, setDetail] = React.useState(state?.detail || null);
-  const [loading, setLoading] = React.useState(!detail);
+  const [detail, setDetail] = React.useState(() => normalizeDetail(id, state?.detail));
+  const [loading, setLoading] = React.useState(!state?.detail);
   const [error, setError] = React.useState();
   const [videoError, setVideoError] = React.useState(false);
 
   React.useEffect(() => {
     if (detail) return;
+
     let active = true;
     setLoading(true);
     apiFetch(`/api/exercises/${id}`)
       .then((data) => {
-        if (active) setDetail(data);
+        if (active) setDetail(normalizeDetail(id, data));
       })
       .catch((errorResponse) => {
         console.error("Failed to load exercise detail:", errorResponse);
@@ -28,6 +48,7 @@ export default function GuidePage() {
       .finally(() => {
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
@@ -81,7 +102,7 @@ export default function GuidePage() {
             <div style={{ textAlign: "center", padding: "20px" }}>
               <p style={{ marginBottom: 10, fontWeight: 600 }}>시범 영상이 준비되지 않았습니다.</p>
               <p className="muted-react" style={{ margin: 0 }}>
-                {detail.guideVideoUrl ? "영상 재생에 실패했습니다. 아래 버튼을 눌러 실시간 운동을 시작하세요." : "현재 등록된 시범 영상이 없습니다. 실시간 운동을 먼저 진행하세요."}
+                영상 재생이 불가할 때는 아래 버튼을 눌러 실시간 운동을 시작할 수 있습니다.
               </p>
             </div>
           </div>
@@ -97,35 +118,9 @@ export default function GuidePage() {
         </ol>
       </div>
 
-      <div className="glass-react card-react">
-        <h3>앞으로 가능한 동작</h3>
-        {detail.futureMoves.length ? (
-          <div className="stack">
-            {detail.futureMoves.map((move) => (
-              <article key={move.id} className="glass-react card-react row-between">
-                <div>
-                  <strong>{move.name}</strong>
-                  <p className="muted-react">{move.subtitle}</p>
-                </div>
-                <button className="btn-react" onClick={() => navigate(`/guide/${move.id}`, { state: { detail: null } })}>
-                  보기
-                </button>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="muted-react">추천 동작이 없습니다.</p>
-        )}
-      </div>
-
       <button className="btn-react primary detail-start" onClick={() => navigate("/live", { state: { exerciseId: detail.id, exerciseName: detail.name } })}>
         실시간 운동 시작
       </button>
-      {videoError ? (
-        <p className="muted-react" style={{ marginTop: 10 }}>
-          영상 재생이 불가할 때는 버튼을 눌러 바로 실시간 운동을 시작할 수 있습니다.
-        </p>
-      ) : null}
     </SequentialScreen>
   );
 }

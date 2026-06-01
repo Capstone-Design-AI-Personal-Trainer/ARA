@@ -4,20 +4,10 @@ import SequentialScreen from "../../components/SequentialScreen";
 import { useAppContext } from "../../contexts/AppContext";
 
 const BODY_PARTS = [
-  { id: "neck", label: "목", x: 50, y: 14 },
-  { id: "right_shoulder", label: "오른쪽 어깨", x: 34, y: 27 },
-  { id: "left_shoulder", label: "왼쪽 어깨", x: 66, y: 27 },
-  { id: "waist", label: "허리", x: 50, y: 50 },
-  { id: "left_knee", label: "왼쪽 무릎", x: 56, y: 82 },
-  { id: "right_knee", label: "오른쪽 무릎", x: 44, y: 82 },
-];
-
-const PAIN_LEVELS = [
-  { value: 0, emoji: "😊", label: "없음" },
-  { value: 1, emoji: "🙂", label: "적음" },
-  { value: 2, emoji: "😐", label: "보통" },
-  { value: 3, emoji: "😟", label: "조금" },
-  { value: 4, emoji: "😣", label: "많이" },
+  { id: "head", label: "머리", x: 50, y: 11 },
+  { id: "shoulder", label: "어깨", x: 50, y: 25 },
+  { id: "knee", label: "무릎", x: 50, y: 73 },
+  { id: "ankle", label: "발목", x: 50, y: 94 },
 ];
 
 function partLabel(id) {
@@ -28,7 +18,7 @@ export default function DiagnosisPage() {
   const navigate = useNavigate();
   const { diagnosis, setDiagnosis } = useAppContext();
   const [selectedPart, setSelectedPart] = React.useState(null);
-  const [painLevel, setPainLevel] = React.useState(diagnosis?.painLevel ?? 2);
+  const [painLevel, setPainLevel] = React.useState(diagnosis?.painLevel ?? 5);
   const [ripplePart, setRipplePart] = React.useState(null);
   const [rippleKey, setRippleKey] = React.useState(0);
 
@@ -56,18 +46,16 @@ export default function DiagnosisPage() {
               <stop offset="0%" stopColor="rgba(105, 181, 238, 0.2)" />
               <stop offset="100%" stopColor="rgba(105, 181, 238, 0)" />
             </radialGradient>
-            <filter id="diagTwinGlow" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="3" />
-            </filter>
           </defs>
           <ellipse cx="110" cy="196" rx="84" ry="168" fill="url(#diagTwinAura)" />
-          <g stroke="rgba(124, 196, 221, 0.66)" strokeWidth="3" strokeDasharray="7 8" strokeLinecap="round">
+          <g className="diag-skeleton-lines">
             <line x1="110" y1="70" x2="110" y2="155" />
             <line x1="110" y1="90" x2="75" y2="165" />
             <line x1="110" y1="90" x2="145" y2="165" />
             <line x1="110" y1="155" x2="110" y2="320" />
             <line x1="95" y1="190" x2="95" y2="356" />
             <line x1="125" y1="190" x2="125" y2="356" />
+            <circle cx="110" cy="52" r="25" />
           </g>
         </svg>
 
@@ -75,6 +63,7 @@ export default function DiagnosisPage() {
           const active = selectedPart === p.id;
           const className = [
             "diag-hotspot",
+            `diag-hotspot-${p.id}`,
             active ? "active" : "",
           ].filter(Boolean).join(" ");
           return (
@@ -95,30 +84,29 @@ export default function DiagnosisPage() {
         })}
       </div>
 
-      <div className="diag-selected">
-        <p>주요 부위</p>
-        <strong>{selectedPart ? partLabel(selectedPart) : "-"}</strong>
-      </div>
-
-      <div>
+      <div className="pain-slider-section">
         <p className="diag-block-title">현재 통증의 정도</p>
-        <div className="pain-level-row">
-          {PAIN_LEVELS.map((level) => (
-            <button
-              key={level.value}
-              className={`pain-chip ${painLevel === level.value ? "active" : ""}`}
-              onClick={() => setPainLevel(level.value)}
-            >
-              <span>{level.emoji}</span>
-              <small>{level.label}</small>
-            </button>
-          ))}
+        <div className="pain-slider-card">
+          <div className="pain-slider-value">
+            <span>{painLevel}</span>
+            <small>/ 10</small>
+          </div>
+          <input
+            className="pain-slider"
+            type="range"
+            min="0"
+            max="10"
+            step="1"
+            value={painLevel}
+            onChange={(event) => setPainLevel(Number(event.target.value))}
+            aria-label="현재 통증의 정도"
+          />
+          <div className="pain-scale" aria-hidden="true">
+            {Array.from({ length: 11 }, (_, value) => (
+              <span key={value}>{value}</span>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className="ai-insight-box">
-        <p className="diag-eyebrow">ARA INSIGHT</p>
-        <p>지난 7일 평균 통증 1.4 → 0.8. 회복 추세를 유지하기에 좋은 상태예요.</p>
       </div>
 
       <button
