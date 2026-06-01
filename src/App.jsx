@@ -4,7 +4,6 @@ import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import ExercisePage from "./pages/ExercisePage";
-import ExerciseDetailPage from "./pages/ExerciseDetailPage";
 import GuidePage from "./pages/GuidePage";
 import ReplayPage from "./pages/ReplayPage";
 import DiagnosisPage from "./pages/DiagnosisPage";
@@ -21,7 +20,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/exercise" element={<ExercisePage />} />
-        <Route path="/exercise/:id" element={<ExerciseDetailPage />} />
+        <Route path="/exercise/:id" element={<GuidePage />} />
         <Route path="/guide/:id" element={<GuidePage />} />
         <Route path="/diagnosis" element={<DiagnosisPage />} />
         <Route path="/live" element={<LivePage />} />

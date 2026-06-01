@@ -1,13 +1,15 @@
-package com.ara.service;
+package com.ara.exercise.session.service;
 
-import com.ara.controller.dto.ExerciseSessionRequest;
-import com.ara.controller.dto.ExerciseSessionResponse;
-import com.ara.entity.ExerciseSession;
 import com.ara.entity.User;
-import com.ara.repository.ExerciseSessionRepository;
+import com.ara.exercise.session.dto.ExerciseSessionRequest;
+import com.ara.exercise.session.dto.ExerciseSessionResponse;
+import com.ara.exercise.session.entity.ExerciseSession;
+import com.ara.exercise.session.repository.ExerciseSessionRepository;
 import com.ara.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -40,15 +42,43 @@ public class ExerciseSessionService {
             .durationSec(request.getDurationSec())
             .calories(request.getCalories())
             .reason(request.getReason())
+            .recordingKey(request.getRecordingKey())
+            .hasRecording(Boolean.TRUE.equals(request.getHasRecording()))
             .memo(request.getMemo())
             .build();
 
         return toResponse(exerciseSessionRepository.save(session));
     }
 
+    public ExerciseSessionResponse updateRecordingMetadata(String email, Long id, ExerciseSessionRequest request) {
+        User user = findUser(email);
+        ExerciseSession session = exerciseSessionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Exercise session not found: " + id));
+
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Exercise session does not belong to current user");
+        }
+
+        session.setRecordingKey(request.getRecordingKey());
+        session.setHasRecording(Boolean.TRUE.equals(request.getHasRecording()));
+        return toResponse(exerciseSessionRepository.save(session));
+    }
+
     public List<ExerciseSessionResponse> getSessions(String email) {
         User user = findUser(email);
         return exerciseSessionRepository.findByUserOrderByCompletedAtDesc(user)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<ExerciseSessionResponse> getSessionsByDate(String email, LocalDate date) {
+        User user = findUser(email);
+        return exerciseSessionRepository.findByUserAndCompletedAtBetweenOrderByCompletedAtDesc(
+                user,
+                date.atStartOfDay(),
+                date.atTime(LocalTime.MAX)
+            )
             .stream()
             .map(this::toResponse)
             .toList();
@@ -98,6 +128,8 @@ public class ExerciseSessionService {
             .durationSec(session.getDurationSec())
             .calories(session.getCalories())
             .reason(session.getReason())
+            .recordingKey(session.getRecordingKey())
+            .hasRecording(Boolean.TRUE.equals(session.getHasRecording()))
             .memo(session.getMemo())
             .completedAt(session.getCompletedAt() != null ? session.getCompletedAt().toString() : "")
             .createdAt(session.getCreatedAt() != null ? session.getCreatedAt().toString() : "")

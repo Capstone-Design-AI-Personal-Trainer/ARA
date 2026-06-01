@@ -2,6 +2,11 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 import SequentialScreen from "../components/SequentialScreen";
+import {
+  deleteWorkoutRecording,
+  getWorkoutRecording,
+  saveWorkoutRecording,
+} from "../features/junyoung/recording/workoutRecordingStore";
 import "./ResultPage.module.css";
 
 function fmtDuration(sec) {
@@ -20,6 +25,8 @@ export default function ResultPage() {
   const calories = state?.calories ?? 48;
   const exerciseName = state?.exerciseName || "레그 레이즈";
   const [saveStatus, setSaveStatus] = React.useState("saving");
+  const [savedSessionId, setSavedSessionId] = React.useState(null);
+  const [recordingStatus, setRecordingStatus] = React.useState(state?.recordingId ? "saving" : "none");
   const [futureMoves, setFutureMoves] = React.useState([]);
   const savedRef = React.useRef(false);
 
@@ -39,7 +46,7 @@ export default function ResultPage() {
       savedRef.current = true;
 
       try {
-        await apiFetch("/api/exercise-sessions", {
+        const saved = await apiFetch("/api/exercise-sessions", {
           method: "POST",
           body: JSON.stringify({
             exerciseId: state?.exerciseId,
@@ -50,13 +57,42 @@ export default function ResultPage() {
             durationSec,
             calories,
             reason: state?.reason,
+            recordingKey: state?.recordingId || "",
+            hasRecording: Boolean(state?.recordingId),
             memo: `${exerciseName} ${reps}회`,
           }),
         });
+        if (state?.recordingId && saved?.id) {
+          const recording = await getWorkoutRecording(state.recordingId);
+          if (recording?.blob) {
+            await saveWorkoutRecording({
+              ...recording,
+              id: String(saved.id),
+              exerciseName,
+              score,
+              reps,
+              durationSec,
+              calories,
+            });
+            await deleteWorkoutRecording(state.recordingId);
+            await apiFetch(`/api/exercise-sessions/${saved.id}/recording`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                recordingKey: String(saved.id),
+                hasRecording: true,
+              }),
+            });
+            if (!ignore) setRecordingStatus("saved");
+          } else if (!ignore) {
+            setRecordingStatus("missing");
+          }
+        }
+        if (!ignore) setSavedSessionId(saved?.id ?? null);
         if (!ignore) setSaveStatus("saved");
       } catch (error) {
         console.error("Failed to save exercise session:", error);
         if (!ignore) setSaveStatus("failed");
+        if (!ignore && state?.recordingId) setRecordingStatus("failed");
       }
     }
 
@@ -141,9 +177,18 @@ export default function ResultPage() {
         <button className="btn-react primary" onClick={() => navigate("/records")}>기록으로 이동</button>
       </div>
 
+      {savedSessionId && recordingStatus === "saved" ? (
+        <button className="btn-react" onClick={() => navigate(`/replay/${savedSessionId}`)}>
+          녹화 다시보기
+        </button>
+      ) : null}
+
       {saveStatus === "saving" ? <p className="muted-react">기록 저장 중...</p> : null}
       {saveStatus === "saved" ? <p className="muted-react">기록이 DB에 저장되었습니다.</p> : null}
       {saveStatus === "failed" ? <p className="muted-react">기록 저장에 실패했습니다.</p> : null}
+      {recordingStatus === "saving" ? <p className="muted-react">녹화 저장 중...</p> : null}
+      {recordingStatus === "saved" ? <p className="muted-react">녹화가 이 기기에 저장되었습니다.</p> : null}
+      {recordingStatus === "failed" || recordingStatus === "missing" ? <p className="muted-react">녹화 저장에 실패했습니다.</p> : null}
       <p className="muted-react">목표 반복: {targetReps}회</p>
     </SequentialScreen>
   );
