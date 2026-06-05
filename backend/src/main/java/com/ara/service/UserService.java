@@ -3,7 +3,11 @@ package com.ara.service;
 import com.ara.controller.dto.UserProfileRequest;
 import com.ara.controller.dto.UserProfileResponse;
 import com.ara.entity.User;
+import com.ara.exercise.session.repository.ExerciseSessionRepository;
+import com.ara.repository.MedicalReportRepository;
+import com.ara.repository.PatientDoctorRepository;
 import com.ara.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +21,22 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ExerciseSessionRepository exerciseSessionRepository;
+    private final PatientDoctorRepository patientDoctorRepository;
+    private final MedicalReportRepository medicalReportRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(
+        UserRepository userRepository,
+        PasswordEncoder passwordEncoder,
+        ExerciseSessionRepository exerciseSessionRepository,
+        PatientDoctorRepository patientDoctorRepository,
+        MedicalReportRepository medicalReportRepository
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.exerciseSessionRepository = exerciseSessionRepository;
+        this.patientDoctorRepository = patientDoctorRepository;
+        this.medicalReportRepository = medicalReportRepository;
     }
 
     public User findByEmail(String email) {
@@ -146,6 +162,16 @@ public class UserService {
             .reportEnabled(updatedUser.getReportEnabled())
             .createdAt(updatedUser.getCreatedAt() != null ? updatedUser.getCreatedAt().toString() : "")
             .build();
+    }
+
+    @Transactional
+    public void deleteCurrentUser(String email) {
+        User user = findByEmail(email);
+
+        exerciseSessionRepository.deleteByUser(user);
+        patientDoctorRepository.deleteByUser(user);
+        medicalReportRepository.deleteByUser(user);
+        userRepository.delete(user);
     }
 
     private void ensureDemoProfile(User user) {

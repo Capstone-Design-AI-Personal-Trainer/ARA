@@ -11,4 +11,5 @@ public interface ExerciseSessionRepository extends JpaRepository<ExerciseSession
     List<ExerciseSession> findByUserOrderByCompletedAtDesc(User user);
     List<ExerciseSession> findByUserAndCompletedAtBetweenOrderByCompletedAtDesc(User user, LocalDateTime start, LocalDateTime end);
     long countByUser(User user);
+    void deleteByUser(User user);
 }

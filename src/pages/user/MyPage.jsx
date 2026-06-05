@@ -4,7 +4,7 @@ import { apiFetch, toSessionView } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
 import { MedicalExportPanel } from "../../components/records/RecordsWidgets";
 import { getWorkoutRecordings } from "../../features/junyoung/recording/workoutRecordingStore";
-import { buildInitialUserProfile, saveUserProfile } from "../../features/userProfile/userProfileStore";
+import { buildInitialUserProfile, clearUserProfile, saveUserProfile } from "../../features/userProfile/userProfileStore";
 
 function toDateLabel(iso) {
   const date = new Date(iso);
@@ -133,6 +133,22 @@ export default function MyPage() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/", { replace: true });
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("회원정보와 저장된 운동 기록을 모두 삭제할까요?");
+    if (!confirmed) return;
+
+    try {
+      await apiFetch("/api/users/me", { method: "DELETE" });
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      clearUserProfile();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      window.alert("회원정보 삭제에 실패했습니다.");
+    }
   };
 
   const onDoctorChange = (event) => {
@@ -380,6 +396,12 @@ export default function MyPage() {
           <div><span>텍스트 크기</span><span>중간 ›</span></div>
         </div>
       </div> : null}
+
+      {activePanel === "settings" ? (
+        <button className="logout-btn" type="button" onClick={handleDeleteAccount}>
+          회원정보 삭제
+        </button>
+      ) : null}
 
       {activePanel === "pending" ? <div className="my-card">
         <p className="my-section-title">저장 대기 기록</p>

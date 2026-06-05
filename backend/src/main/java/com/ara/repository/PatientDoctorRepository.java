@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface PatientDoctorRepository extends JpaRepository<PatientDoctor, Long> {
     List<PatientDoctor> findByUserOrderByPrimaryDoctorDescAssignedAtDesc(User user);
+    void deleteByUser(User user);
 }
