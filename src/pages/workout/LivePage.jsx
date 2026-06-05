@@ -26,6 +26,8 @@ function ScanPanel({ countdown, checks }) {
       <div className="scan-check-grid">
         <div className={`scan-chip ${checks.face ? "on" : ""}`}>얼굴 인식</div>
         <div className={`scan-chip ${checks.shoulder ? "on" : ""}`}>어깨 위치</div>
+        <div className={`scan-chip ${checks.pelvis ? "on" : ""}`}>골반 위치</div>
+        <div className={`scan-chip ${checks.feet ? "on" : ""}`}>발 위치</div>
       </div>
     </div>
   );
@@ -97,6 +99,8 @@ export default function LivePage() {
   const [checks, setChecks] = React.useState({
     face: false,
     shoulder: false,
+    pelvis: false,
+    feet: false,
   });
   const [rep, setRep] = React.useState(0);
   const [accuracy, setAccuracy] = React.useState(null);
@@ -227,8 +231,6 @@ export default function LivePage() {
 
       if (result.landmarks && result.landmarks[0]) {
         const lm = result.landmarks[0];
-        drawSkeleton(ctx, lm, canvas.width, canvas.height, video.videoWidth, video.videoHeight);
-
         const {
           faceOk,
           shoulderOk,
@@ -237,10 +239,17 @@ export default function LivePage() {
           open,
           closed,
         } = buildPoseSignals(lm);
-        const scanReady = faceOk && shoulderOk;
-        const nextChecks = { face: faceOk, shoulder: shoulderOk };
+        const scanReady = faceOk && shoulderOk && pelvisOk && feetOk;
+        const nextChecks = {
+          face: faceOk,
+          shoulder: shoulderOk,
+          pelvis: pelvisOk,
+          feet: feetOk,
+        };
 
-        if (currentStage === "scan" && !FORCE_SCAN_PASS) {
+        drawSkeleton(ctx, lm, canvas.width, canvas.height, video.videoWidth, video.videoHeight);
+
+        if (currentStage === "scan") {
           if (scanReady) {
             if (!holdStartRef.current) holdStartRef.current = Date.now();
             const sec = (Date.now() - holdStartRef.current) / 1000;
@@ -306,17 +315,24 @@ export default function LivePage() {
         setChecks((prev) => (
           prev.face === nextChecks.face
             && prev.shoulder === nextChecks.shoulder
+            && prev.pelvis === nextChecks.pelvis
+            && prev.feet === nextChecks.feet
             ? prev
             : nextChecks
         ));
         setStatus((prev) => (prev === "실시간 자세 분석 중" ? prev : "실시간 자세 분석 중"));
       } else {
         setStatus((prev) => (prev === "신체를 화면 중앙에 맞춰주세요" ? prev : "신체를 화면 중앙에 맞춰주세요"));
-        if (stageRef.current === "scan" && !FORCE_SCAN_PASS) {
+        if (stageRef.current === "scan") {
           setChecks((prev) => (
-            !prev.face && !prev.shoulder
+            !prev.face && !prev.shoulder && !prev.pelvis && !prev.feet
               ? prev
-              : { face: false, shoulder: false }
+              : {
+                face: false,
+                shoulder: false,
+                pelvis: false,
+                feet: false,
+              }
           ));
           holdStartRef.current = null;
           setCountdown((c) => (c === 3 ? c : 3));

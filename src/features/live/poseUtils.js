@@ -300,6 +300,10 @@ export function findBestGtInWindow({
 
 export function buildPoseSignals(lm, calibration = null) {
   const nose = lm[0];
+  const leftEyeInner = lm[1];
+  const rightEyeInner = lm[4];
+  const leftEar = lm[7];
+  const rightEar = lm[8];
   const lShoulder = lm[11];
   const rShoulder = lm[12];
   const lHip = lm[23];
@@ -309,7 +313,10 @@ export function buildPoseSignals(lm, calibration = null) {
   const lWrist = lm[15];
   const rWrist = lm[16];
 
-  const faceOk = hasVisible(nose);
+  const faceOk = (
+    hasVisible(nose, leftEyeInner, rightEyeInner)
+    || hasVisible(nose, leftEar, rightEar)
+  );
   const shoulderOk = hasVisible(lShoulder, rShoulder) && Math.abs(lShoulder.y - rShoulder.y) < 0.08;
   const pelvisOk = hasVisible(lHip, rHip) && Math.abs(lHip.y - rHip.y) < 0.08;
   const feetOk = hasVisible(lAnkle, rAnkle) && lAnkle.y < 0.98 && rAnkle.y < 0.98;

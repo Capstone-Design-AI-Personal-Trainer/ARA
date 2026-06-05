@@ -63,16 +63,18 @@
   min-height: 42px;
   display: grid;
   place-items: center;
-  background: var(--surface);
-  color: var(--muted);
+  background: rgba(220, 232, 238, 0.38);
+  color: rgba(71, 92, 99, 0.52);
   font-size: 13px;
   font-weight: 600;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 :global(.scan-chip.on) {
-  border-color: rgba(111, 207, 205, 0.8);
-  color: #1a6d6c;
-  background: rgba(163, 230, 229, 0.3);
+  border-color: rgba(111, 207, 205, 0.95);
+  color: #165f5f;
+  background: rgba(178, 243, 239, 0.78);
+  box-shadow: 0 0 0 1px rgba(141, 241, 237, 0.18), 0 8px 20px rgba(111, 207, 205, 0.18);
 }
 
 :global(.theme-dark .scan-chip.on) {
