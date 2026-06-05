@@ -22,7 +22,7 @@ function TabIcon({ kind }) {
 export default function AppLayout() {
   const { pathname } = useLocation();
   const shellRef = React.useRef(null);
-  const hideNav = pathname === "/" || pathname === "/login";
+  const hideNav = pathname === "/" || pathname === "/login" || pathname === "/profile-setup";
   const showThemeToggle = pathname === "/home";
   const [diagnosis, setDiagnosis] = React.useState({
     selectedPart: "waist",
