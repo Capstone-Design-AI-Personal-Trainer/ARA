@@ -12,12 +12,19 @@ export default function LoginPage() {
     const token = params.get("token");
     const email = params.get("email");
     const name = params.get("name");
+    const mode = params.get("mode");
+    const oauthError = params.get("oauthError");
+    if (oauthError) {
+      setError(decodeURIComponent(oauthError));
+      window.history.replaceState({}, "", "/login");
+      return;
+    }
     if (token) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({ email, name }));
       const oauthMode = sessionStorage.getItem("oauth_mode");
       sessionStorage.removeItem("oauth_mode");
-      navigate(oauthMode === "signup" ? "/profile-setup" : "/home", { replace: true });
+      navigate((mode || oauthMode) === "signup" ? "/profile-setup" : "/home", { replace: true });
     }
   }, [navigate]);
 
