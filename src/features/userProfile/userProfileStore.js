@@ -7,6 +7,8 @@ export const emptyUserProfile = {
   heightCm: "",
   weightKg: "",
   targetAreas: "",
+  painPart: "",
+  painLevel: "",
   bio: "",
 };
 
@@ -60,6 +62,8 @@ export function saveUserProfile(profile) {
     heightCm: String(profile.heightCm || "").trim(),
     weightKg: String(profile.weightKg || "").trim(),
     targetAreas: String(profile.targetAreas || "").trim(),
+    painPart: String(profile.painPart || "").trim(),
+    painLevel: String(profile.painLevel || "").trim(),
     bio: String(profile.bio || "").trim(),
     updatedAt: new Date().toISOString(),
   };

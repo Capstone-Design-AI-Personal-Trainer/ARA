@@ -126,6 +126,12 @@ a { color: inherit; text-decoration: none; }
 .app-shell-react.no-scroll {
   overflow: hidden;
 }
+.app-shell-react.profile-setup-shell {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 72px var(--side-padding) 28px;
+}
 
 .screen-react {
   display: grid;
@@ -375,6 +381,140 @@ a { color: inherit; text-decoration: none; }
   padding-top: 14px;
   resize: vertical;
 }
+.profile-setup-screen {
+  width: 100%;
+  max-width: 292px;
+  min-height: 100%;
+  grid-template-rows: 54px minmax(0, 1fr) 16px;
+  align-content: stretch;
+  gap: 8px;
+  margin: 0 auto;
+}
+.profile-setup-screen > * {
+  min-width: 0;
+}
+.profile-setup-form {
+  width: 100%;
+  gap: 9px;
+  padding: 18px;
+  border-radius: 22px;
+}
+.profile-setup-form .field-react,
+.profile-setup-form .btn-react {
+  min-width: 0;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+.profile-setup-form .profile-textarea {
+  min-height: 68px;
+  padding-top: 12px;
+  line-height: 1.35;
+}
+.profile-stepper {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  align-self: end;
+  padding: 0;
+}
+.profile-stepper span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(111,207,205,0.28);
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+.profile-stepper span.active {
+  width: 18px;
+  background: #6fcfcd;
+}
+.profile-stepper span.done {
+  background: rgba(111,207,205,0.58);
+}
+.profile-onboarding-head h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.18;
+  text-align: center;
+}
+.profile-onboarding-main {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+}
+.profile-setup-form .btn-react:disabled,
+.profile-onboarding-actions .btn-react:disabled {
+  opacity: 0.45;
+}
+.profile-pain-panel {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.profile-body-picker {
+  width: 100%;
+  max-width: 198px;
+  aspect-ratio: 220 / 300;
+  margin-top: 0;
+  border-radius: 32px;
+}
+.profile-pain-card {
+  width: 100%;
+  padding: 12px 14px 10px;
+  border-radius: 18px;
+}
+.profile-pain-card .pain-slider-value {
+  margin-bottom: 4px;
+}
+.profile-pain-card .pain-slider-value span {
+  font-size: 28px;
+}
+.profile-pain-card .pain-slider {
+  height: 30px;
+}
+.profile-onboarding-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 8px;
+}
+.profile-onboarding-actions .btn-react {
+  height: 48px;
+  border-radius: 16px;
+}
+.profile-summary-card {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 22px;
+}
+.profile-summary-card div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  border-bottom: 1px solid rgba(111,207,205,0.18);
+}
+.profile-summary-card div:last-child {
+  border-bottom: 0;
+}
+.profile-summary-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.profile-summary-card strong {
+  color: var(--text);
+  font-size: 14px;
+  text-align: right;
+}
 .theme-light .my-card {
   background: rgba(255,255,255,0.7);
   border-color: rgba(111, 207, 205, 0.34);
@@ -503,7 +643,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
 }
 
-\.diagnosis-screen {
+.diagnosis-screen {
   background: #05070a;
   border-radius: 26px;
   padding: 10px;
@@ -593,6 +733,15 @@ a { color: inherit; text-decoration: none; }
 .diag-hotspot-ankle.active {
   width: 52px;
   height: 28px;
+}
+.diag-hotspot-waist {
+  width: 54px;
+  height: 30px;
+  border-radius: 999px;
+}
+.diag-hotspot-waist.active {
+  width: 54px;
+  height: 30px;
 }
 .diag-ripple {
   position: absolute;

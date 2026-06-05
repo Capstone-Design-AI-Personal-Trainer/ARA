@@ -54,7 +54,11 @@ export default function AppLayout() {
 
   const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
   const isActiveTab = (to) => pathname === to || pathname.startsWith(`${to}/`);
-  const appShellClass = pathname === "/home" ? "app-shell-react no-scroll" : "app-shell-react";
+  const appShellClass = pathname === "/home"
+    ? "app-shell-react no-scroll"
+    : pathname === "/profile-setup"
+      ? "app-shell-react profile-setup-shell"
+      : "app-shell-react";
   const appContextValue = { theme, isDark, diagnosis, setDiagnosis };
 
   return (
