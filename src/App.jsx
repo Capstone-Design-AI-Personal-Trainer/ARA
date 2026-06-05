@@ -2,6 +2,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/LoginPage";
+import ProfileSetupPage from "./features/userProfile/ProfileSetupPage";
 import HomePage from "./pages/HomePage";
 import ExercisePage from "./pages/ExercisePage";
 import GuidePage from "./pages/GuidePage";
@@ -18,6 +19,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile-setup" element={<ProfileSetupPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/exercise" element={<ExercisePage />} />
         <Route path="/exercise/:id" element={<GuidePage />} />

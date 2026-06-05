@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import RehabHomeScreen from "../RehabHomeScreen";
 
@@ -7,7 +7,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [navigate]);
 

@@ -4,6 +4,7 @@ import { apiFetch, toSessionView } from "../api";
 import SequentialScreen from "../components/SequentialScreen";
 import { MedicalExportPanel } from "../components/records/RecordsWidgets";
 import { getWorkoutRecordings } from "../features/junyoung/recording/workoutRecordingStore";
+import { buildInitialUserProfile, saveUserProfile } from "../features/userProfile/userProfileStore";
 
 function toDateLabel(iso) {
   const date = new Date(iso);
@@ -37,13 +38,7 @@ export default function MyPage() {
   const [reports, setReports] = React.useState([]);
   const [recordingsById, setRecordingsById] = React.useState({});
   const [reportMessage, setReportMessage] = React.useState("");
-  const [profile, setProfile] = React.useState({
-    name: "김동국",
-    heightCm: 178,
-    weightKg: 65,
-    targetAreas: "어깨, 허리",
-    bio: "",
-  });
+  const [profile, setProfile] = React.useState(() => buildInitialUserProfile());
   const [doctorForm, setDoctorForm] = React.useState({
     name: "",
     hospital: "",
@@ -83,15 +78,9 @@ export default function MyPage() {
       .then(setReports)
       .catch((error) => console.error("Failed to load medical reports:", error));
 
-    apiFetch("/api/users/profile")
-      .then((data) => setProfile({
-        name: data.name || "김동국",
-        heightCm: data.heightCm || 178,
-        weightKg: data.weightKg || 65,
-        targetAreas: data.targetAreas || "어깨, 허리",
-        bio: data.bio || "",
-      }))
-      .catch((error) => console.error("Failed to load profile:", error));
+    if (!localStorage.getItem("token")) {
+      navigate("/", { replace: true });
+    }
   }, []);
 
   const onSavePending = async () => {
@@ -140,6 +129,12 @@ export default function MyPage() {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/", { replace: true });
+  };
+
   const onDoctorChange = (event) => {
     const { name, value } = event.target;
     setDoctorForm((prev) => ({ ...prev, [name]: value }));
@@ -152,24 +147,22 @@ export default function MyPage() {
 
   const onSaveProfile = async (event) => {
     event.preventDefault();
+    const cachedProfile = saveUserProfile(profile);
+    setProfile(cachedProfile);
+
     try {
       const saved = await apiFetch("/api/users/profile", {
         method: "PUT",
         body: JSON.stringify({
-          name: profile.name,
-          heightCm: Number(profile.heightCm),
-          weightKg: Number(profile.weightKg),
-          targetAreas: profile.targetAreas,
-          bio: profile.bio,
+          name: cachedProfile.name,
+          heightCm: Number(cachedProfile.heightCm),
+          weightKg: Number(cachedProfile.weightKg),
+          targetAreas: cachedProfile.targetAreas,
+          bio: cachedProfile.bio,
         }),
       });
-      setProfile({
-        name: saved.name || "김동국",
-        heightCm: saved.heightCm || 178,
-        weightKg: saved.weightKg || 65,
-        targetAreas: saved.targetAreas || "어깨, 허리",
-        bio: saved.bio || "",
-      });
+      const syncedProfile = saveUserProfile({ ...cachedProfile, ...saved });
+      setProfile(syncedProfile);
     } catch (error) {
       console.error("Failed to save profile:", error);
     }
@@ -219,6 +212,11 @@ export default function MyPage() {
   const primaryDoctor = doctors[0];
   const daysInCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const panelTitle = MY_PANEL_ITEMS.find((item) => item.id === activePanel)?.label;
+  const displayName = profile.name || "사용자";
+  const avatarInitial = displayName.trim().charAt(0) || "U";
+  const heightLabel = profile.heightCm ? `${profile.heightCm} cm` : "-";
+  const weightLabel = profile.weightKg ? `${profile.weightKg} kg` : "-";
+  const targetAreasLabel = profile.targetAreas || "-";
 
   return (
     <SequentialScreen className="screen-react my-page-screen">
@@ -230,10 +228,10 @@ export default function MyPage() {
       </header>
 
       <div className="my-card my-profile">
-        <div className="avatar">김</div>
+        <div className="avatar">{avatarInitial}</div>
         <div>
-          <h3>{profile.name || "김동국"}</h3>
-          <p className="my-muted">{profile.heightCm || 178} cm · {profile.weightKg || 65} kg</p>
+          <h3>{displayName}</h3>
+          <p className="my-muted">{heightLabel} · {weightLabel}</p>
         </div>
       </div>
 
@@ -311,9 +309,11 @@ export default function MyPage() {
       {activePanel === "body" ? <div className="my-card">
         <p className="my-section-title">신체 기준값</p>
         <div className="my-list">
-          <div><span>키</span><span>{profile.heightCm || 178} cm</span></div>
-          <div><span>몸무게</span><span>{profile.weightKg || 65} kg</span></div>
-          <div><span>목표 부위</span><span>{profile.targetAreas || "어깨, 허리"}</span></div>
+          <div><span>나이</span><span>{profile.age ? `${profile.age}세` : "-"}</span></div>
+          <div><span>성별</span><span>{profile.gender || "-"}</span></div>
+          <div><span>키</span><span>{heightLabel}</span></div>
+          <div><span>몸무게</span><span>{weightLabel}</span></div>
+          <div><span>목표 부위</span><span>{targetAreasLabel}</span></div>
           <div>
             <span>주치의</span>
             <span>{primaryDoctor ? `${primaryDoctor.hospital || ""} ${primaryDoctor.name}`.trim() : "미등록"}</span>
@@ -325,6 +325,14 @@ export default function MyPage() {
         <p className="my-section-title">내 정보 저장</p>
         <form className="stack" onSubmit={onSaveProfile}>
           <input className="field-react" name="name" placeholder="이름" value={profile.name} onChange={onProfileChange} />
+          <input className="field-react" name="age" placeholder="나이" type="number" value={profile.age} onChange={onProfileChange} />
+          <select className="field-react" name="gender" value={profile.gender} onChange={onProfileChange}>
+            <option value="">성별</option>
+            <option value="여성">여성</option>
+            <option value="남성">남성</option>
+            <option value="기타">기타</option>
+            <option value="미입력">선택 안 함</option>
+          </select>
           <input className="field-react" name="heightCm" placeholder="키(cm)" type="number" value={profile.heightCm} onChange={onProfileChange} />
           <input className="field-react" name="weightKg" placeholder="몸무게(kg)" type="number" value={profile.weightKg} onChange={onProfileChange} />
           <input className="field-react" name="targetAreas" placeholder="목표 부위" value={profile.targetAreas} onChange={onProfileChange} />
@@ -407,7 +415,11 @@ export default function MyPage() {
         )}
       </div> : null}
 
-      {activePanel === "settings" ? <button className="logout-btn">로그아웃</button> : null}
+      {!activePanel ? (
+        <button className="logout-btn" type="button" onClick={handleLogout}>
+          로그아웃
+        </button>
+      ) : null}
       {activePanel === "settings" ? <p className="my-version">ARA · v1.4.2</p> : null}
     </SequentialScreen>
   );
