@@ -37,6 +37,7 @@ export function computeBodyMetrics(landmarks, minVisibility = 0.55) {
 
   return {
     shoulderWidth: shouldersWidth,
+    shoulderCenter,
     hipWidth,
     torsoLen,
     center: hipCenter,
@@ -51,12 +52,16 @@ export function averageBodyMetrics(samples) {
     shoulderWidth: acc.shoulderWidth + sample.shoulderWidth,
     hipWidth: acc.hipWidth + sample.hipWidth,
     torsoLen: acc.torsoLen + sample.torsoLen,
+    shoulderCenterX: acc.shoulderCenterX + sample.shoulderCenter.x,
+    shoulderCenterY: acc.shoulderCenterY + sample.shoulderCenter.y,
     centerX: acc.centerX + sample.center.x,
     centerY: acc.centerY + sample.center.y,
   }), {
     shoulderWidth: 0,
     hipWidth: 0,
     torsoLen: 0,
+    shoulderCenterX: 0,
+    shoulderCenterY: 0,
     centerX: 0,
     centerY: 0,
   });
@@ -64,6 +69,10 @@ export function averageBodyMetrics(samples) {
   const count = samples.length;
   return {
     shoulderWidth: total.shoulderWidth / count,
+    shoulderCenter: {
+      x: total.shoulderCenterX / count,
+      y: total.shoulderCenterY / count,
+    },
     hipWidth: total.hipWidth / count,
     torsoLen: total.torsoLen / count,
     center: {

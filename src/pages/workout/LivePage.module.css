@@ -36,6 +36,24 @@
   max-height: 40dvh;
 }
 
+:global(.live-gt-overlay) {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+:global(.live-gt-overlay-canvas) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.95;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.26));
+  transform: none;
+  transform-origin: center center;
+}
+
 :global(.live-count) {
   text-align: center;
   font-size: 56px;
@@ -51,7 +69,7 @@
 
 :global(.scan-check-grid) {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
   margin-top: 20px;

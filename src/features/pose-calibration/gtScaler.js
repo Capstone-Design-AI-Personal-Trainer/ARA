@@ -1,5 +1,13 @@
 import { computeBodyMetrics } from "./bodyMetrics";
 
+const FIT_SCALE = 0.9;
+const MIN_SCALE = 0.55;
+const MAX_SCALE = 1.45;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 export function computeScaleFromMetrics(userMetrics, gtMetrics) {
   if (!userMetrics || !gtMetrics) return { sx: 1, sy: 1 };
 
@@ -8,7 +16,10 @@ export function computeScaleFromMetrics(userMetrics, gtMetrics) {
     ? userMetrics.shoulderWidth / gtMetrics.shoulderWidth
     : 1;
   const hipRatio = gtMetrics.hipWidth > 0 ? userMetrics.hipWidth / gtMetrics.hipWidth : 1;
-  const uniformScale = torsoRatio * 0.5 + shoulderRatio * 0.3 + hipRatio * 0.2;
+  const baseScale = userMetrics.inferredFromUpperBodyOnly
+    ? shoulderRatio
+    : torsoRatio * 0.35 + shoulderRatio * 0.5 + hipRatio * 0.15;
+  const uniformScale = clamp(baseScale * FIT_SCALE, MIN_SCALE, MAX_SCALE);
 
   return { sx: uniformScale, sy: uniformScale };
 }
@@ -34,6 +45,7 @@ export function applyCalibrationToGtFrame(gtFrame, calibration) {
   if (!gtMetrics) return gtFrame;
 
   const scale = computeScaleFromMetrics(userMetrics, gtMetrics);
-  const overlayCenter = calibration?.overlayCenter || { x: 0.5, y: 0.5 };
-  return transformGtFrame(gtFrame, gtMetrics.center, overlayCenter, scale);
+  const gtAnchor = gtMetrics.shoulderCenter || gtMetrics.center;
+  const userAnchor = calibration?.overlayCenter || userMetrics.shoulderCenter || userMetrics.center;
+  return transformGtFrame(gtFrame, gtAnchor, userAnchor, scale);
 }
