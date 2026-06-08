@@ -1,10 +1,10 @@
-﻿import React from "react";
+import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/auth/LoginPage";
+import ProfileSetupPage from "./features/userProfile/ProfileSetupPage";
 import HomePage from "./pages/home/HomePage";
 import ExercisePage from "./pages/exercise/ExercisePage";
-import ExerciseDetailPage from "./pages/exercise/ExerciseDetailPage";
 import GuidePage from "./pages/exercise/GuidePage";
 import ReplayPage from "./pages/workout/ReplayPage";
 import DiagnosisPage from "./pages/workout/DiagnosisPage";
@@ -19,9 +19,10 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile-setup" element={<ProfileSetupPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/exercise" element={<ExercisePage />} />
-        <Route path="/exercise/:id" element={<ExerciseDetailPage />} />
+        <Route path="/exercise/:id" element={<GuidePage />} />
         <Route path="/guide/:id" element={<GuidePage />} />
         <Route path="/diagnosis" element={<DiagnosisPage />} />
         <Route path="/live" element={<LivePage />} />

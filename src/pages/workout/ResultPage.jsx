@@ -57,6 +57,8 @@ export default function ResultPage() {
             durationSec,
             calories,
             reason: state?.reason,
+            recordingKey: state?.recordingId || "",
+            hasRecording: Boolean(state?.recordingId),
             memo: `${exerciseName} ${reps}회`,
           }),
         });
@@ -73,6 +75,13 @@ export default function ResultPage() {
               calories,
             });
             await deleteWorkoutRecording(state.recordingId);
+            await apiFetch(`/api/exercise-sessions/${saved.id}/recording`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                recordingKey: String(saved.id),
+                hasRecording: true,
+              }),
+            });
             if (!ignore) setRecordingStatus("saved");
           } else if (!ignore) {
             setRecordingStatus("missing");

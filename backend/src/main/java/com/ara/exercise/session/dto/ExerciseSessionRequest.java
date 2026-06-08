@@ -1,4 +1,4 @@
-package com.ara.controller.dto;
+package com.ara.exercise.session.dto;
 
 import lombok.Data;
 
@@ -12,5 +12,7 @@ public class ExerciseSessionRequest {
     private Integer durationSec;
     private Integer calories;
     private String reason;
+    private String recordingKey;
+    private Boolean hasRecording;
     private String memo;
 }

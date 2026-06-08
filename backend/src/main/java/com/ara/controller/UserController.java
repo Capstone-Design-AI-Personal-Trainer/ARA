@@ -33,6 +33,13 @@ public class UserController {
         return ResponseEntity.ok(updatedProfile);
     }
 
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteCurrentUser(Authentication authentication) {
+        String email = authentication.getName();
+        userService.deleteCurrentUser(email);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok("OK");

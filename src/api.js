@@ -43,6 +43,8 @@ export function toSessionView(session) {
     durationSec: session.durationSec,
     calories: session.calories,
     reason: session.reason,
+    recordingKey: session.recordingKey,
+    hasRecording: Boolean(session.hasRecording),
     createdAt: session.completedAt || session.createdAt,
   };
 }

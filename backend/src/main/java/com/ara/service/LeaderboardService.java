@@ -1,10 +1,10 @@
 package com.ara.service;
 
 import com.ara.controller.dto.LeaderboardResponse;
-import com.ara.entity.ExerciseSession;
 import com.ara.entity.LeaderboardEntry;
 import com.ara.entity.User;
-import com.ara.repository.ExerciseSessionRepository;
+import com.ara.exercise.session.entity.ExerciseSession;
+import com.ara.exercise.session.repository.ExerciseSessionRepository;
 import com.ara.repository.LeaderboardEntryRepository;
 import com.ara.repository.UserRepository;
 import org.springframework.stereotype.Service;

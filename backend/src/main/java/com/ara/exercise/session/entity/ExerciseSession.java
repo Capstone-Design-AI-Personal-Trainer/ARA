@@ -1,5 +1,6 @@
-package com.ara.entity;
+package com.ara.exercise.session.entity;
 
+import com.ara.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,6 +46,13 @@ public class ExerciseSession {
     private Integer calories;
 
     private String reason;
+
+    @Column(name = "recording_key")
+    private String recordingKey;
+
+    @Column(name = "has_recording")
+    @Builder.Default
+    private Boolean hasRecording = false;
 
     @Column(columnDefinition = "TEXT")
     private String memo;
