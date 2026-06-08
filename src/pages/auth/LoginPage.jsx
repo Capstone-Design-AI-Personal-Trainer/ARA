@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import SequentialScreen from "../../components/SequentialScreen";
 import { API_BASE_URL } from "../../api";
 
+const ENABLE_REAL_OAUTH = import.meta.env.VITE_ENABLE_REAL_OAUTH === "true";
+
 function saveDemoSession(provider, formData = {}) {
   const fallbackName = provider ? `${provider} 데모 사용자` : "Demo User";
   const user = {
@@ -103,7 +105,7 @@ export default function LoginPage() {
   const handleOAuth2Login = (provider) => {
     const mode = isLogin ? "login" : "signup";
     sessionStorage.setItem("oauth_mode", mode);
-    if (!API_BASE_URL) {
+    if (!ENABLE_REAL_OAUTH || !API_BASE_URL) {
       saveDemoSession(provider, formData);
       navigate(mode === "signup" ? "/profile-setup" : "/home", { replace: true });
       return;
