@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../../api";
+import { API_BASE_URL, apiFetch } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
 import { useAppContext } from "../../contexts/AppContext";
 import rehabCardEllipse from "../../assets/rehab-card-ellipse.svg";
@@ -36,6 +36,15 @@ export default function ExercisePage() {
 
   React.useEffect(() => {
     let active = true;
+    if (!API_BASE_URL) {
+      setExerciseSummaries(FALLBACK_EXERCISES);
+      setOfflineMode(false);
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
     setLoading(true);
     apiFetch("/api/exercises")
       .then((data) => {

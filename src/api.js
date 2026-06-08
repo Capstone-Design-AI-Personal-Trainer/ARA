@@ -1,10 +1,14 @@
-const API_BASE_URL = "http://localhost:8080";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:8080" : "");
 
 export function getToken() {
   return localStorage.getItem("token");
 }
 
 export async function apiFetch(path, options = {}) {
+  if (!API_BASE_URL) {
+    throw new Error("API server is not configured.");
+  }
+
   const token = getToken();
   const headers = {
     "Content-Type": "application/json",

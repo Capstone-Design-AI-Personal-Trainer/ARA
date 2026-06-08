@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SequentialScreen from "../../components/SequentialScreen";
+import { API_BASE_URL } from "../../api";
+
+function saveDemoSession(provider, formData = {}) {
+  const fallbackName = provider ? `${provider} 데모 사용자` : "Demo User";
+  const user = {
+    email: formData.email || `${provider || "demo"}@ara.demo`,
+    name: formData.name || fallbackName,
+  };
+  localStorage.setItem("token", `demo-token-${Date.now()}`);
+  localStorage.setItem("user", JSON.stringify(user));
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -54,7 +65,13 @@ export default function LoginPage() {
         ? { email: formData.email, password: formData.password }
         : { email: formData.email, password: formData.password, name: formData.name };
 
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
+      if (!API_BASE_URL) {
+        saveDemoSession(null, formData);
+        navigate(isLogin ? "/home" : "/profile-setup", { replace: true });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +103,12 @@ export default function LoginPage() {
   const handleOAuth2Login = (provider) => {
     const mode = isLogin ? "login" : "signup";
     sessionStorage.setItem("oauth_mode", mode);
-    window.location.href = `http://localhost:8080/oauth2/authorization/${provider}?mode=${mode}`;
+    if (!API_BASE_URL) {
+      saveDemoSession(provider, formData);
+      navigate(mode === "signup" ? "/profile-setup" : "/home", { replace: true });
+      return;
+    }
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/${provider}?mode=${mode}`;
   };
 
   return (
