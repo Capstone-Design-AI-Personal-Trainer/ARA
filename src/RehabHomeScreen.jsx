@@ -22,16 +22,17 @@ const fadeIn = {
 };
 
 const heroGraphic = {
-  hidden: { opacity: 0, scale: 0.92 },
+  hidden: { opacity: 0, y: 42, scale: 0.96 },
   show: {
     opacity: 1,
+    y: 0,
     scale: 1,
-    transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.95, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
 const textReveal = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 34 },
   show: {
     opacity: 1,
     y: 0,
@@ -50,7 +51,7 @@ const progressList = {
 };
 
 const ringItem = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: 26 },
   show: {
     opacity: 1,
     y: 0,
@@ -126,7 +127,7 @@ export default function RehabHomeScreen() {
       </motion.section>
 
       <motion.header className="rehab-copy" variants={textReveal}>
-        <p className="eyebrow">AI Rehabilitation Assistant · ARA</p>
+        <p className="eyebrow">AI REHABILITATION ASSISTANT · ARA</p>
         <h1>오늘의 회복, 시작할 준비 되셨나요?</h1>
         <p className="sub">AI 가이드 세션이 정밀 분석을 마쳤습니다.</p>
       </motion.header>

@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
 import { useAppContext } from "../../contexts/AppContext";
+import rehabCardEllipse from "../../assets/rehab-card-ellipse.svg";
+import shoulderRehabCharacter from "../../assets/shoulder-rehab-character.svg";
+
+const PART_ORDER = ["어깨", "허리", "무릎"];
 
 const FALLBACK_EXERCISES = [
   { id: "wall-squat", name: "벽 스쿼트", part: "무릎", subtitle: "무릎 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
@@ -18,13 +22,17 @@ const FALLBACK_EXERCISES = [
 ];
 
 export default function ExercisePage() {
-  const [part, setPart] = React.useState("무릎");
+  const [part, setPart] = React.useState("어깨");
   const [exerciseSummaries, setExerciseSummaries] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState();
   const [offlineMode, setOfflineMode] = React.useState(false);
   const navigate = useNavigate();
   const { diagnosis } = useAppContext();
+
+  const openExercise = (item) => {
+    navigate(`/guide/${item.id}`, { state: { diagnosis, detail: item, fromExerciseList: true } });
+  };
 
   React.useEffect(() => {
     let active = true;
@@ -64,7 +72,7 @@ export default function ExercisePage() {
     }, {});
   }, [exerciseSummaries]);
 
-  const parts = Object.keys(grouped);
+  const parts = PART_ORDER.filter((key) => grouped[key]?.length);
 
   React.useEffect(() => {
     if (parts.length > 0 && !parts.includes(part)) {
@@ -92,7 +100,7 @@ export default function ExercisePage() {
 
   return (
     <SequentialScreen className="screen-react">
-      <h2>운동 선택</h2>
+      <h2>재활 선택</h2>
       {offlineMode ? (
         <div className="glass-react card-react" style={{ marginBottom: 16 }}>
           <p className="muted-react" style={{ margin: 0 }}>
@@ -107,22 +115,39 @@ export default function ExercisePage() {
       </div>
 
       <div className="stack">
-        {(grouped[part] || []).map((item) => (
-          <article key={item.id} className="glass-react card-react row-between">
-            <div>
-              <strong>{item.name}</strong>
-              <p className="muted-react">{item.subtitle}</p>
-            </div>
-            <button className="btn-react primary" onClick={() => navigate(`/exercise/${item.id}`, { state: { diagnosis, detail: item } })}>
-              상세보기
-            </button>
-          </article>
-        ))}
+        {(grouped[part] || []).map((item) => {
+          const isShoulderAbduction = item.id === "shoulder-abduction";
+          if (isShoulderAbduction) {
+            return (
+              <article key={item.id} className="figma-rehab-card">
+                <div>
+                  <strong>{item.name}</strong>
+                  <p>{item.subtitle?.match(/\d+\s*min/)?.[0]?.replace(" ", "") || "10mins"}</p>
+                  <button onClick={() => openExercise(item)}>
+                    상세보기
+                  </button>
+                </div>
+                <div className="figma-rehab-visual" aria-hidden="true">
+                  <img className="figma-rehab-ellipse" src={rehabCardEllipse} alt="" />
+                  <img className="figma-rehab-character" src={shoulderRehabCharacter} alt="" />
+                </div>
+              </article>
+            );
+          }
+
+          return (
+            <article key={item.id} className="glass-react card-react row-between">
+              <div>
+                <strong>{item.name}</strong>
+                <p className="muted-react">{item.subtitle}</p>
+              </div>
+              <button className="btn-react primary" onClick={() => openExercise(item)}>
+                상세보기
+              </button>
+            </article>
+          );
+        })}
       </div>
     </SequentialScreen>
   );
 }
-
-
-
-

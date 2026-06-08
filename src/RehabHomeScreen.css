@@ -13,11 +13,12 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 10px 2px 0;
+  padding: 0;
   color: var(--rehab-ink);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
-  gap: 12px;
+  grid-template-rows: 274px auto 108px 56px;
+  align-content: start;
+  gap: 13px;
 }
 
 .rehab-bg {
@@ -32,8 +33,8 @@
 
 .rehab-hero {
   position: relative;
-  height: min(34vh, 300px);
-  border-radius: 24px;
+  height: 274px;
+  border-radius: 25px 25px 0 0;
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.34);
   backdrop-filter: blur(12px);
@@ -45,7 +46,7 @@
 
 .wireframe-glow {
   position: absolute;
-  width: 78%;
+  width: 86%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(139, 213, 242, 0.34), rgba(139, 213, 242, 0));
@@ -54,10 +55,11 @@
 
 .wireframe-body {
   position: relative;
-  width: min(78%, 260px);
-  aspect-ratio: 3 / 6.2;
+  width: min(74%, 258px);
+  height: 286px;
   border: 1px solid var(--rehab-line);
-  border-radius: 100px 100px 40px 40px;
+  border-radius: 130px 130px 0 0;
+  transform: translateY(39px);
 }
 
 .wireframe-body::before,
@@ -77,10 +79,7 @@
 }
 
 .wireframe-body::after {
-  bottom: 10%;
-  width: 70%;
-  height: 26%;
-  border-radius: 40px;
+  display: none;
 }
 
 .joint {
@@ -92,39 +91,39 @@
   box-shadow: 0 0 0 6px rgba(111, 207, 205, 0.15);
 }
 
-.j1 { left: 50%; top: 12%; transform: translateX(-50%); }
-.j2 { left: 28%; top: 31%; }
-.j3 { right: 28%; top: 31%; }
-.j4 { left: 50%; top: 40%; transform: translateX(-50%); }
-.j5 { left: 35%; top: 53%; }
-.j6 { right: 35%; top: 53%; }
-.j7 { left: 42%; bottom: 20%; }
-.j8 { right: 42%; bottom: 20%; }
-.j9 { left: 50%; bottom: 8%; transform: translateX(-50%); }
+.j1 { left: 50%; top: 18%; transform: translateX(-50%); }
+.j2 { left: 31%; top: 37%; }
+.j3 { right: 31%; top: 37%; }
+.j4 { left: 50%; top: 51%; transform: translateX(-50%); }
+.j5 { left: 38%; top: 73%; }
+.j6 { right: 38%; top: 73%; }
+.j7 { left: 32%; bottom: -3%; }
+.j8 { right: 32%; bottom: -3%; }
+.j9 { display: none; }
 
 .rehab-copy .eyebrow {
   margin: 0;
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--rehab-sub);
 }
 
 .rehab-copy {
-  margin-top: 28px;
+  margin-top: 7px;
 }
 
 .rehab-copy h1 {
-  margin: 6px 0 6px;
-  font-size: clamp(24px, 6.2vw, 32px);
+  margin: 5px 0 8px;
+  font-size: 31px;
   line-height: 1.12;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   word-break: keep-all;
 }
 
 .rehab-copy .sub {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--rehab-sub);
 }
 
@@ -132,9 +131,13 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  align-items: stretch;
 }
 
 .rehab-ring-card {
+  display: grid;
+  align-content: center;
+  min-height: 108px;
   padding: 8px;
   border-radius: 16px;
   background: var(--rehab-card);
@@ -145,8 +148,8 @@
 
 .rehab-ring-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
+  width: 70px;
+  height: 70px;
   margin: 0 auto 6px;
 }
 
@@ -179,18 +182,18 @@
 }
 
 .rehab-ring-label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--rehab-sub);
 }
 
 .rehab-cta {
   margin-top: 0;
-  height: 50px;
+  height: 56px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #a3e6e5, #8bd5f2);
   color: #0f2a2a;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   box-shadow: none;
 }

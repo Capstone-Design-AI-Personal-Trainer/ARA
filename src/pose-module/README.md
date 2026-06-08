@@ -18,6 +18,7 @@ npm install @mediapipe/tasks-vision
 
 ```text
 pose-module/
+  accuracy-module/
   drawPose.js
   index.js
   package.json
@@ -93,3 +94,32 @@ usePoseTracker({
 - 실제 서비스에서는 `.task` 모델 파일과 WASM 파일을 자체 서버나 public 폴더에 두고 `modelAssetPath`, `wasmPath` 옵션으로 경로를 넘기는 것을 권장합니다.
 - 이 모듈은 관절 추출까지만 담당합니다. 정답 영상 비교, 각도 계산, 점수화, 피드백 문구는 별도 로직으로 분리하는 것이 좋습니다.
 - 이 폴더를 `frontend/src` 밖에서 현재 Vite 앱이 직접 import하도록 연결하면 빌드 설정 문제가 생길 수 있습니다. 외부 프로젝트에 붙일 때는 해당 프로젝트의 `src/pose-module` 안으로 복사해서 사용하는 것을 권장합니다.
+
+## 어깨 재활 Accuracy 계산
+
+`accuracy-module`은 어깨 충돌 증후군 재활 운동에서 한쪽 팔의 정확도를 계산합니다.
+
+```js
+import { calcShoulderRehabAccuracy } from './pose-module'
+
+const result = calcShoulderRehabAccuracy({
+  side: 'left',
+  userLandmarks, // MediaPipe 33개 landmark
+  gtLandmarks, // 같은 프레임의 GT 33개 landmark
+  suitArmRegion, // GT 우주복 팔 허용 영역
+})
+
+console.log(result.accuracy)
+console.log(result.parts)
+```
+
+기본 계산식은 아래 세 점수의 가중 평균입니다.
+
+```text
+accuracy =
+  팔이 GT 우주복 팔 영역 안에 들어온 정도 40%
++ 사용자 팔 중심선이 GT 어깨-팔꿈치-손목 기준선과 가까운 정도 35%
++ 사용자 어깨/팔꿈치 각도가 GT와 가까운 정도 25%
+```
+
+`suitArmRegion`은 polygon 또는 capsule 형태를 받을 수 있습니다. 아직 별도 우주복 영역 데이터가 없다면 `gtLandmarks`의 어깨-팔꿈치-손목 기준선으로 임시 capsule 허용 영역을 자동 생성합니다.
