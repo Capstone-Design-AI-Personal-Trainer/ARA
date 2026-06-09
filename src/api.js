@@ -39,6 +39,7 @@ export async function apiFetch(path, options = {}) {
 export function toSessionView(session) {
   return {
     id: session.id,
+    exerciseId: session.exerciseId,
     memo: session.memo || session.exerciseName,
     exerciseName: session.exerciseName,
     score: session.accuracyScore,
@@ -49,6 +50,7 @@ export function toSessionView(session) {
     reason: session.reason,
     recordingKey: session.recordingKey,
     hasRecording: Boolean(session.hasRecording),
+    localRecordId: session.localRecordId,
     createdAt: session.completedAt || session.createdAt,
   };
 }

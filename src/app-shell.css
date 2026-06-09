@@ -216,61 +216,67 @@ a { color: inherit; text-decoration: none; }
 
 .figma-rehab-card {
   position: relative;
-  min-height: 132px;
+  min-height: 124px;
   overflow: hidden;
   border: 0;
   border-radius: 20px;
-  padding: 20px 21px;
-  background: linear-gradient(103deg, rgba(163, 230, 229, 0.2), rgba(139, 213, 242, 0.2));
+  padding: 17px 20px;
+  background: linear-gradient(103deg, rgba(163, 230, 229, 0.1), rgba(139, 213, 242, 0.08));
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 .figma-rehab-card strong {
   display: block;
   max-width: 150px;
   color: #1d1617;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 21px;
 }
 .figma-rehab-card p {
-  margin: 5px 0 22px;
+  margin: 3px 0 15px;
   color: #7b6f72;
   font-size: 12px;
   line-height: 18px;
 }
 .figma-rehab-card button {
-  width: 101px;
-  height: 35px;
+  width: 96px;
+  height: 34px;
   border: 0;
   border-radius: 20px;
   background: #fff;
   color: #8bd5f2;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
 }
 .figma-rehab-visual {
   position: absolute;
-  top: 14px;
-  right: 21px;
-  width: 99px;
-  height: 103px;
+  top: 8px;
+  right: 14px;
+  width: 104px;
+  height: 108px;
 }
 .figma-rehab-ellipse {
   position: absolute;
   top: 6px;
   right: 0;
-  width: 99px;
-  height: 92px;
+  width: 104px;
+  height: 98px;
 }
 .figma-rehab-character {
   position: absolute;
-  inset: 0 auto auto 16px;
-  width: 67px;
-  height: 103px;
+  inset: 0;
+  width: 104px;
+  height: 108px;
   object-fit: contain;
 }
 
+.exercise-selection-screen { gap: 14px; }
+.exercise-selection-title { margin: 0 0 4px; color: #262135; font-size: 25px; line-height: 1.1; }
+.exercise-part-tabs { gap: 8px; }
+.exercise-part-tabs button { height: 42px; border: 1px solid #a3e6e5; border-radius: 18px; background: #fff; color: #111; font-size: 15px; font-weight: 600; }
+.exercise-part-tabs button.active { background: #a3e6e5; }
+.exercise-card-list { gap: 10px; }
 .bottom-nav-react {
   position: absolute;
   left: 10px;
@@ -1010,7 +1016,7 @@ a { color: inherit; text-decoration: none; }
 }
 .figma-profile-menu {
   display: grid;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
   padding: 10px 14px;
   border: 1px solid #a3e6e5;
   border-radius: 20px;
@@ -1056,18 +1062,18 @@ a { color: inherit; text-decoration: none; }
   line-height: 1;
 }
 .figma-calendar-title {
-  margin: 0 0 14px;
+  margin: 0 0 6px;
   color: #696969;
   font-size: 16px;
   font-weight: 700;
-  line-height: 30px;
+  line-height: 24px;
 }
 .figma-calendar-box {
   display: grid;
   grid-template-columns: repeat(7, 40px);
-  gap: 8px 5px;
+  gap: 6px 5px;
   justify-content: center;
-  padding: 16px 14px;
+  padding: 12px 14px;
   border: 1px solid #a3e6e5;
   border-radius: 20px;
   background: #fff;
@@ -1086,4 +1092,26 @@ a { color: inherit; text-decoration: none; }
 }
 .figma-calendar-cell.active {
   background: rgba(163, 230, 229, 0.35);
+}
+.figma-calendar-cell.today {
+  border-color: #5fc8c6;
+  background: rgba(163, 230, 229, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(62, 157, 155, 0.28),
+    0 4px 10px rgba(48, 122, 121, 0.35);
+}
+.figma-logout-btn {
+  width: 100%;
+  height: 46px;
+  margin-top: 20px;
+  border: 1px solid #e1a5a5;
+  border-radius: 14px;
+  background: #fff;
+  color: #c65353;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.figma-logout-btn:hover {
+  background: #fff5f5;
 }

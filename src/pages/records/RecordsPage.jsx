@@ -4,7 +4,11 @@ import { apiFetch, toSessionView } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
 import { getWorkoutRecordings } from "../../features/junyoung/recording/workoutRecordingStore";
 import { buildWorkoutReport } from "../../features/junyoung/report/workoutReport";
-import "./RecordsPage.module.css";
+import {
+  getCachedWorkoutHistory,
+  mergeWorkoutHistory,
+} from "../../features/workoutHistory/workoutHistoryStore";
+import "./RecordsPage.css";
 
 function formatDate(value) {
   if (!value) return "날짜 없음";
@@ -70,12 +74,19 @@ export default function RecordsPage() {
   const [recordingsById, setRecordingsById] = React.useState({});
 
   React.useEffect(() => {
+    const cachedRecords = getCachedWorkoutHistory();
+    setSessions(cachedRecords);
+
     apiFetch("/api/exercise-sessions")
       .then(async (data) => {
         const sessionViews = data.map(toSessionView);
-        setSessions(sessionViews);
+        setSessions(mergeWorkoutHistory(sessionViews, cachedRecords));
         try {
-          const recordings = await getWorkoutRecordings(sessionViews.map((session) => String(session.id)));
+          const recordIds = mergeWorkoutHistory(sessionViews, cachedRecords)
+            .flatMap((session) => [session.id, session.recordingKey])
+            .filter(Boolean)
+            .map(String);
+          const recordings = await getWorkoutRecordings(recordIds);
           setRecordingsById(Object.fromEntries(recordings.map((recording) => [recording.id, recording])));
         } catch (error) {
           console.error("Failed to load local recordings:", error);
@@ -84,24 +95,36 @@ export default function RecordsPage() {
       })
       .catch((error) => {
         console.error("Failed to load exercise sessions:", error);
-        setSessions([]);
-        setRecordingsById({});
+        setSessions(cachedRecords);
+        getWorkoutRecordings(
+          cachedRecords
+            .flatMap((session) => [session.id, session.recordingKey])
+            .filter(Boolean)
+            .map(String),
+        )
+          .then((recordings) => {
+            setRecordingsById(Object.fromEntries(recordings.map((recording) => [recording.id, recording])));
+          })
+          .catch(() => setRecordingsById({}));
       });
   }, []);
 
   return (
-    <SequentialScreen className="screen-react">
-      <h2>기록</h2>
+    <SequentialScreen className="screen-react records-page">
+      <h2 className="records-page-title">기록</h2>
 
-      <div className="glass-react card-react">
+      <div className="glass-react card-react records-list-panel">
         <h3>운동 기록</h3>
         {sessions.length ? (
           <div className="record-session-list">
-            {sessions.slice(0, 5).map((session) => (
+            {sessions.map((session) => (
               <WorkoutRecordCard
                 key={session.id}
                 session={session}
-                hasRecording={Boolean(recordingsById[String(session.id)])}
+                hasRecording={Boolean(
+                  recordingsById[String(session.id)]
+                  || recordingsById[String(session.recordingKey)],
+                )}
                 onOpen={() => navigate(`/replay/${session.id}`)}
               />
             ))}

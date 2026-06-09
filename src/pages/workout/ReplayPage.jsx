@@ -6,6 +6,7 @@ import SequentialScreen from "../../components/SequentialScreen";
 import ReplayVideo from "../../features/junyoung/replay/ReplayVideo";
 import { getWorkoutRecording } from "../../features/junyoung/recording/workoutRecordingStore";
 import { buildWorkoutReport } from "../../features/junyoung/report/workoutReport";
+import { getCachedWorkout } from "../../features/workoutHistory/workoutHistoryStore";
 import "./ReplayPage.module.css";
 
 function fmtDuration(sec) {
@@ -60,8 +61,25 @@ export default function ReplayPage() {
         }
       })
       .catch((loadError) => {
-        console.error("Failed to load session:", loadError);
-        setError("녹화 영상을 불러올 수 없습니다.");
+        const cachedSession = getCachedWorkout(id);
+        if (!cachedSession) {
+          console.error("Failed to load session:", loadError);
+          setError("운동 기록을 불러올 수 없습니다.");
+          return;
+        }
+        setSession({
+          ...cachedSession,
+          accuracyScore: cachedSession.accuracyScore ?? cachedSession.score ?? 0,
+          completedAt: cachedSession.createdAt,
+        });
+        getWorkoutRecording(cachedSession.recordingKey || id)
+          .then((recording) => {
+            if (recording?.blob) {
+              objectUrl = URL.createObjectURL(recording.blob);
+              setRecordingUrl(objectUrl);
+            }
+          })
+          .catch(() => {});
       });
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);

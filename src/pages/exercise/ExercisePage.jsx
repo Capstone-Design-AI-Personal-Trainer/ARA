@@ -4,9 +4,50 @@ import { API_BASE_URL, apiFetch } from "../../api";
 import SequentialScreen from "../../components/SequentialScreen";
 import { useAppContext } from "../../contexts/AppContext";
 import rehabCardEllipse from "../../assets/rehab-card-ellipse.svg";
-import shoulderRehabCharacter from "../../assets/shoulder-rehab-character.svg";
+import shoulderAbductionCard from "../../assets/exercises/shoulder/shoulder-abduction-card.png";
+import shoulderRotationCard from "../../assets/exercises/shoulder/shoulder-rotation-card.png";
+import shoulderScapulaCard from "../../assets/exercises/shoulder/shoulder-scapula-card.png";
+import shoulderWallSlideCard from "../../assets/exercises/shoulder/shoulder-wall-slide-card.png";
+import backBirdDogCard from "../../assets/exercises/back/back-bird-dog-card.png";
+import backBridgeCard from "../../assets/exercises/back/back-bridge-card.png";
+import backDeadBugCard from "../../assets/exercises/back/back-dead-bug-card.png";
+import kneeWallSquatCard from "../../assets/exercises/knee/knee-wall-squat-card.png";
+import kneeLegRaiseCard from "../../assets/exercises/knee/knee-leg-raise-card.png";
+import kneeLungeCard from "../../assets/exercises/knee/knee-lunge-card.png";
 
 const PART_ORDER = ["어깨", "허리", "무릎"];
+const SHOULDER_CARD_IMAGES = {
+  "shoulder-abduction": shoulderAbductionCard,
+  "band-rotation": shoulderRotationCard,
+  "scapula-retraction": shoulderScapulaCard,
+  "wall-slide": shoulderWallSlideCard,
+};
+const EXERCISE_CARD_IMAGES = {
+  ...SHOULDER_CARD_IMAGES,
+  "bird-dog": backBirdDogCard,
+  bridge: backBridgeCard,
+  "dead-bug": backDeadBugCard,
+  "wall-squat": kneeWallSquatCard,
+  "leg-raise": kneeLegRaiseCard,
+  "slow-lunge": kneeLungeCard,
+};
+
+function getExerciseCardImage(item) {
+  const id = String(item.id || "").toLowerCase();
+  const name = String(item.name || "");
+  if (EXERCISE_CARD_IMAGES[id]) return EXERCISE_CARD_IMAGES[id];
+  if (name.includes("외전")) return shoulderAbductionCard;
+  if (name.includes("외회전") || name.includes("밴드")) return shoulderRotationCard;
+  if (name.includes("견갑") || name.includes("모으기")) return shoulderScapulaCard;
+  if (name.includes("버드독")) return backBirdDogCard;
+  if (name.includes("브릿지")) return backBridgeCard;
+  if (name.includes("데드버그")) return backDeadBugCard;
+  if (name.includes("스쿼트")) return kneeWallSquatCard;
+  if (name.includes("레그 레이즈")) return kneeLegRaiseCard;
+  if (name.includes("런지")) return kneeLungeCard;
+  if (name.includes("벽") || name.includes("슬라이드")) return shoulderWallSlideCard;
+  return shoulderAbductionCard;
+}
 
 const FALLBACK_EXERCISES = [
   { id: "wall-squat", name: "벽 스쿼트", part: "무릎", subtitle: "무릎 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
@@ -108,8 +149,8 @@ export default function ExercisePage() {
   }
 
   return (
-    <SequentialScreen className="screen-react">
-      <h2>재활 선택</h2>
+    <SequentialScreen className="screen-react exercise-selection-screen">
+      <h2 className="exercise-selection-title">재활 선택</h2>
       {offlineMode ? (
         <div className="glass-react card-react" style={{ marginBottom: 16 }}>
           <p className="muted-react" style={{ margin: 0 }}>
@@ -117,42 +158,28 @@ export default function ExercisePage() {
           </p>
         </div>
       ) : null}
-      <div className="segment-react">
+      <div className="segment-react exercise-part-tabs">
         {parts.map((p) => (
           <button key={p} className={part === p ? "active" : ""} onClick={() => setPart(p)}>{p}</button>
         ))}
       </div>
 
-      <div className="stack">
+      <div className="stack exercise-card-list">
         {(grouped[part] || []).map((item) => {
-          const isShoulderAbduction = item.id === "shoulder-abduction";
-          if (isShoulderAbduction) {
-            return (
-              <article key={item.id} className="figma-rehab-card">
-                <div>
-                  <strong>{item.name}</strong>
-                  <p>{item.subtitle?.match(/\d+\s*min/)?.[0]?.replace(" ", "") || "10mins"}</p>
-                  <button onClick={() => openExercise(item)}>
-                    상세보기
-                  </button>
-                </div>
-                <div className="figma-rehab-visual" aria-hidden="true">
-                  <img className="figma-rehab-ellipse" src={rehabCardEllipse} alt="" />
-                  <img className="figma-rehab-character" src={shoulderRehabCharacter} alt="" />
-                </div>
-              </article>
-            );
-          }
-
+          const cardImage = getExerciseCardImage(item);
           return (
-            <article key={item.id} className="glass-react card-react row-between">
+            <article key={item.id} className="figma-rehab-card">
               <div>
                 <strong>{item.name}</strong>
-                <p className="muted-react">{item.subtitle}</p>
+                <p>{item.subtitle?.match(/\d+\s*min/i)?.[0]?.replace(/\s+/g, "") || "10mins"}</p>
+                <button onClick={() => openExercise(item)}>
+                  상세보기
+                </button>
               </div>
-              <button className="btn-react primary" onClick={() => openExercise(item)}>
-                상세보기
-              </button>
+              <div className="figma-rehab-visual" aria-hidden="true">
+                <img className="figma-rehab-ellipse" src={rehabCardEllipse} alt="" />
+                <img className="figma-rehab-character" src={cardImage} alt="" />
+              </div>
             </article>
           );
         })}
