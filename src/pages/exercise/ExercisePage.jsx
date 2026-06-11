@@ -18,9 +18,18 @@ import kneeLungeCard from "../../assets/exercises/knee/knee-lunge-card.png";
 const PART_ORDER = ["어깨", "허리", "무릎"];
 const SHOULDER_CARD_IMAGES = {
   "shoulder-abduction": shoulderAbductionCard,
+  "shoulder-abduction-adduction": shoulderAbductionCard,
   "band-rotation": shoulderRotationCard,
   "scapula-retraction": shoulderScapulaCard,
   "wall-slide": shoulderWallSlideCard,
+};
+const EXERCISE_DISPLAY_NAMES = {
+  "shoulder-abduction": "어깨 외전",
+  "shoulder-abduction-adduction": "어깨 외전",
+  "front-raise": "프론트 레이즈",
+  "band-rotation": "밴드 외회전",
+  "scapula-retraction": "견갑골 모으기",
+  "wall-slide": "벽 슬라이드",
 };
 const EXERCISE_CARD_IMAGES = {
   ...SHOULDER_CARD_IMAGES,
@@ -32,9 +41,14 @@ const EXERCISE_CARD_IMAGES = {
   "slow-lunge": kneeLungeCard,
 };
 
+function getExerciseDisplayName(item) {
+  const id = String(item.id || "").toLowerCase();
+  return EXERCISE_DISPLAY_NAMES[id] || item.name;
+}
+
 function getExerciseCardImage(item) {
   const id = String(item.id || "").toLowerCase();
-  const name = String(item.name || "");
+  const name = String(getExerciseDisplayName(item) || "");
   if (EXERCISE_CARD_IMAGES[id]) return EXERCISE_CARD_IMAGES[id];
   if (name.includes("외전")) return shoulderAbductionCard;
   if (name.includes("외회전") || name.includes("밴드")) return shoulderRotationCard;
@@ -56,8 +70,8 @@ const FALLBACK_EXERCISES = [
   { id: "bird-dog", name: "버드독", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "bridge", name: "브릿지", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "dead-bug", name: "데드버그", part: "허리", subtitle: "허리 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
-  { id: "shoulder-abduction-adduction", name: "Shoulder Abduction-Adduction", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/Lyhpfw_tP5c" },
-  { id: "front-raise", name: "Front Raise", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
+  { id: "shoulder-abduction", name: "어깨 외전", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/Lyhpfw_tP5c" },
+  { id: "front-raise", name: "프론트 레이즈", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
   { id: "wall-slide", name: "벽 슬라이드", part: "어깨", subtitle: "어깨 재활 · 10 min", guideVideoUrl: "https://www.youtube.com/embed/i_0zLUcE-zk" },
 ];
 
@@ -71,7 +85,8 @@ export default function ExercisePage() {
   const { diagnosis } = useAppContext();
 
   const openExercise = (item) => {
-    navigate(`/guide/${item.id}`, { state: { diagnosis, detail: item, fromExerciseList: true } });
+    const normalizedItem = { ...item, name: getExerciseDisplayName(item) };
+    navigate(`/guide/${normalizedItem.id}`, { state: { diagnosis, detail: normalizedItem, fromExerciseList: true } });
   };
 
   React.useEffect(() => {
@@ -166,10 +181,11 @@ export default function ExercisePage() {
       <div className="stack exercise-card-list">
         {(grouped[part] || []).map((item) => {
           const cardImage = getExerciseCardImage(item);
+          const displayName = getExerciseDisplayName(item);
           return (
             <article key={item.id} className="figma-rehab-card">
               <div>
-                <strong>{item.name}</strong>
+                <strong>{displayName}</strong>
                 <p>{item.subtitle?.match(/\d+\s*min/i)?.[0]?.replace(/\s+/g, "") || "10mins"}</p>
                 <button onClick={() => openExercise(item)}>
                   상세보기
