@@ -1,0 +1,27 @@
+{
+  "source": {
+    "type": "youtube",
+    "url": "https://www.youtube.com/watch?v=Lyhpfw_tP5c",
+    "video_id": "Lyhpfw_tP5c"
+  },
+  "extractor": {
+    "name": "mediapipe",
+    "task": "pose",
+    "model": "data/ground-truth/models/pose_landmarker_full.task",
+    "frame_stride": 1,
+    "generated_at": "2026-05-15T10:46:15.263512+00:00"
+  },
+  "video": {
+    "file": "data/ground-truth/videos/Lyhpfw_tP5c.mp4",
+    "fps": 29.97002997002997,
+    "width": 640,
+    "height": 360,
+    "total_frames": 3429
+  },
+  "output": {
+    "pose_json": "data/ground-truth/pose-json/Lyhpfw_tP5c.pose.json",
+    "pose_csv": "data/ground-truth/pose-csv/Lyhpfw_tP5c.pose.csv",
+    "extracted_frames": 3429,
+    "landmark_count": 33
+  }
+}

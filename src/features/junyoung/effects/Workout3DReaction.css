@@ -1,0 +1,123 @@
+.jy-3d-reaction {
+  position: absolute;
+  top: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  animation: jy-3d-reaction-pop 1500ms ease-out forwards;
+}
+
+.jy-3d-reaction-persistent {
+  animation: none;
+}
+
+.jy-3d-reaction-left {
+  left: 14px;
+}
+
+.jy-3d-reaction-right {
+  right: 14px;
+  flex-direction: row-reverse;
+}
+
+.jy-3d-stage {
+  width: 92px;
+  height: 110px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.24));
+}
+
+.jy-sprite {
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: auto;
+  background-color: transparent;
+  mix-blend-mode: multiply;
+}
+
+.jy-sprite-idle {
+  width: 88px;
+  height: 104px;
+  background-image: url("./assets/ara-idle.png");
+  background-size: 417.92px 104px;
+  animation: jy-sprite-idle-play 900ms steps(4) infinite;
+}
+
+.jy-sprite-jump {
+  width: 82px;
+  height: 112px;
+  background-image: url("./assets/ara-jump.png");
+  background-size: 326.2476635514px 112px;
+}
+
+.jy-sprite-jump.is-animated {
+  animation: jy-sprite-jump-play 720ms steps(4) infinite;
+}
+
+.jy-3d-speech {
+  min-width: 106px;
+  border-radius: 16px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #143836;
+  border: 1px solid rgba(111, 207, 205, 0.65);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.jy-3d-speech strong,
+.jy-3d-speech span {
+  display: block;
+  line-height: 1.15;
+}
+
+.jy-3d-speech strong {
+  font-size: 13px;
+  color: #0f8d89;
+}
+
+.jy-3d-speech span {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@keyframes jy-3d-reaction-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.86);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.94);
+  }
+}
+
+@keyframes jy-sprite-idle-play {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -417.92px;
+  }
+}
+
+@keyframes jy-sprite-jump-play {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -326.2476635514px;
+  }
+}

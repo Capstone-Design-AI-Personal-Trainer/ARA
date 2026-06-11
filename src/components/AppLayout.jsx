@@ -13,7 +13,7 @@ const tabs = [
 
 function TabIcon({ kind }) {
   if (kind === "home") return <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 11.5L12 5l8 6.5V20h-5.2v-5.2H9.2V20H4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>;
-  if (kind === "exercise") return <svg viewBox="0 0 24 24" width="18" height="18"><rect x="4" y="5" width="16" height="15" rx="3" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="M8 3v4M16 3v4M8 11h8M8 15h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>;
+  if (kind === "exercise") return <svg viewBox="0 0 30 30" width="18" height="18"><rect x="6" y="7" width="18" height="18" rx="4" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M11 4v6M19 4v6M10 14h10M10 19h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>;
   if (kind === "diagnosis") return <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 13h4l2-4 3 8 2.5-5H21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
   if (kind === "records") return <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 19V5m6 14V9m6 10v-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M4 19h16" stroke="currentColor" strokeWidth="1.6"/></svg>;
   return <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="M4 20c0-3.7 3.3-6 8-6s8 2.3 8 6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>;
@@ -22,7 +22,7 @@ function TabIcon({ kind }) {
 export default function AppLayout() {
   const { pathname } = useLocation();
   const shellRef = React.useRef(null);
-  const hideNav = pathname === "/" || pathname === "/login";
+  const hideNav = pathname === "/" || pathname === "/login" || pathname === "/profile-setup";
   const showThemeToggle = pathname === "/home";
   const [diagnosis, setDiagnosis] = React.useState({
     selectedPart: "waist",
@@ -54,7 +54,11 @@ export default function AppLayout() {
 
   const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
   const isActiveTab = (to) => pathname === to || pathname.startsWith(`${to}/`);
-  const appShellClass = pathname === "/home" ? "app-shell-react no-scroll" : "app-shell-react";
+  const appShellClass = pathname === "/home"
+    ? "app-shell-react no-scroll"
+    : pathname === "/profile-setup"
+      ? "app-shell-react profile-setup-shell"
+      : "app-shell-react";
   const appContextValue = { theme, isDark, diagnosis, setDiagnosis };
 
   return (
@@ -89,6 +93,5 @@ export default function AppLayout() {
     </div>
   );
 }
-
 
 

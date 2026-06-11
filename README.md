@@ -20,6 +20,35 @@ npm install
 
 ## 개발 서버 실행
 
+백엔드와 프론트엔드를 각각 실행합니다.
+
+### 백엔드 실행
+
+로컬 H2 DB로 실행:
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Supabase DB로 실행:
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=supabase
+```
+
+백엔드 시작 로그에서 현재 DB를 확인할 수 있습니다.
+
+```text
+Active Spring profiles: supabase
+Active database: Supabase/PostgreSQL
+```
+
+심사용 데모만 빠르게 돌릴 때는 H2로도 충분하지만, 실제 회원가입 데이터를 Supabase에 남기려면 반드시 `supabase` 프로필로 실행해야 합니다.
+
+### 프론트엔드 실행
+
 ```bash
 npm run dev
 ```
@@ -60,6 +89,27 @@ npm run dev      # 개발 서버 실행
 npm run build    # 배포용 빌드
 npm run preview  # 빌드 결과 미리보기
 ```
+
+## Ground Truth Pose JSON 추출
+
+YouTube 영상을 다운로드한 뒤 MediaPipe Pose로 프레임별 관절 좌표를 추출합니다. 기본 URL은 `https://www.youtube.com/watch?v=Lyhpfw_tP5c`입니다.
+
+```bash
+python3 -m venv .venv-pose
+.venv-pose/bin/python -m pip install -r requirements-pose.txt
+.venv-pose/bin/python scripts/extract_pose_gt.py
+```
+
+출력 위치:
+
+```text
+data/ground-truth/videos/       # 다운로드된 원본 영상
+data/ground-truth/pose-json/    # 프레임별 MediaPipe 좌표 JSON
+data/ground-truth/pose-csv/     # 프레임별 MediaPipe 좌표 CSV
+data/ground-truth/metadata/     # 추출 조건과 영상 메타데이터
+```
+
+각 프레임의 landmark에는 MediaPipe 정규화 좌표 `x, y, z`, 픽셀 좌표 `x, y`, `visibility`가 함께 저장됩니다.
 
 ## 주요 폴더
 

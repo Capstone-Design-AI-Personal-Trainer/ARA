@@ -1,10 +1,37 @@
 const SKELETON_LINKS = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
-  [11, 23], [12, 24], [23, 24], [23, 25], [25, 27],
-  [24, 26], [26, 28],
+  [11, 23], [12, 24],
 ];
+const DISPLAY_LANDMARKS = new Set([0, 1, 4, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24]);
 
-export function drawSkeleton(ctx, pose, w, h, options = {}) {
+function getCoverRect(canvasWidth, canvasHeight, videoWidth, videoHeight) {
+  if (!videoWidth || !videoHeight) {
+    return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+  }
+
+  const scale = Math.max(canvasWidth / videoWidth, canvasHeight / videoHeight);
+  const width = videoWidth * scale;
+  const height = videoHeight * scale;
+
+  return {
+    x: (canvasWidth - width) / 2,
+    y: (canvasHeight - height) / 2,
+    width,
+    height,
+  };
+}
+
+function getCoverPoint(point, rect) {
+  return {
+    x: rect.x + (1 - point.x) * rect.width,
+    y: rect.y + point.y * rect.height,
+  };
+}
+
+export function drawSkeleton(ctx, pose, canvasWidth, canvasHeight, videoWidthOrOptions, videoHeight) {
+  const options = typeof videoWidthOrOptions === "object" && videoWidthOrOptions !== null
+    ? videoWidthOrOptions
+    : {};
   const {
     lineWidth = 2,
     lineColor = "rgba(111,207,205,0.9)",
@@ -12,26 +39,36 @@ export function drawSkeleton(ctx, pose, w, h, options = {}) {
     pointRadius = 3.8,
     minVisibility = 0.45,
   } = options;
-
   const links = [
     ...SKELETON_LINKS,
   ];
+  const rect = getCoverRect(
+    canvasWidth,
+    canvasHeight,
+    typeof videoWidthOrOptions === "number" ? videoWidthOrOptions : undefined,
+    videoHeight
+  );
+
   ctx.lineWidth = lineWidth;
   links.forEach(([aIdx, bIdx]) => {
     const a = pose[aIdx];
     const b = pose[bIdx];
     if (!a || !b || a.visibility < minVisibility || b.visibility < minVisibility) return;
+    const start = getCoverPoint(a, rect);
+    const end = getCoverPoint(b, rect);
     ctx.strokeStyle = lineColor;
     ctx.beginPath();
-    ctx.moveTo((1 - a.x) * w, a.y * h);
-    ctx.lineTo((1 - b.x) * w, b.y * h);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
     ctx.stroke();
   });
-  pose.forEach((p) => {
+  pose.forEach((p, index) => {
+    if (!DISPLAY_LANDMARKS.has(index)) return;
     if (!p || p.visibility < minVisibility) return;
+    const point = getCoverPoint(p, rect);
     ctx.fillStyle = pointColor;
     ctx.beginPath();
-    ctx.arc((1 - p.x) * w, p.y * h, pointRadius, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, pointRadius, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -264,19 +301,23 @@ export function findBestGtInWindow({
 
 export function buildPoseSignals(lm, calibration = null) {
   const nose = lm[0];
+  const leftEyeInner = lm[1];
+  const rightEyeInner = lm[4];
+  const leftEar = lm[7];
+  const rightEar = lm[8];
   const lShoulder = lm[11];
   const rShoulder = lm[12];
   const lHip = lm[23];
   const rHip = lm[24];
-  const lAnkle = lm[27];
-  const rAnkle = lm[28];
   const lWrist = lm[15];
   const rWrist = lm[16];
 
-  const faceOk = hasVisible(nose);
+  const faceOk = (
+    hasVisible(nose, leftEyeInner, rightEyeInner)
+    || hasVisible(nose, leftEar, rightEar)
+  );
   const shoulderOk = hasVisible(lShoulder, rShoulder) && Math.abs(lShoulder.y - rShoulder.y) < 0.08;
   const pelvisOk = hasVisible(lHip, rHip) && Math.abs(lHip.y - rHip.y) < 0.08;
-  const feetOk = hasVisible(lAnkle, rAnkle) && lAnkle.y < 0.98 && rAnkle.y < 0.98;
 
   const shoulderWidth = hasVisible(lShoulder, rShoulder) ? distance(lShoulder, rShoulder) : 0.18;
   const wristSpread = hasVisible(lWrist, rWrist) ? distance(lWrist, rWrist) : 0;
@@ -287,19 +328,14 @@ export function buildPoseSignals(lm, calibration = null) {
     faceOk,
     shoulderOk,
     pelvisOk,
-    feetOk,
-    allGood: faceOk && shoulderOk && pelvisOk && feetOk,
+    allGood: faceOk && shoulderOk && pelvisOk,
     open: wristSpread > shoulderBase * 1.45,
     closed: wristSpread < shoulderBase * 1.15,
   };
 }
 
-export function calcPostureScore({ faceOk, shoulderOk, pelvisOk, feetOk }) {
-  return Math.round((faceOk ? 25 : 10) + (shoulderOk ? 25 : 10) + (pelvisOk ? 25 : 10) + (feetOk ? 25 : 10));
-}
-
 export function calcCoachMessage({ allGood, open }) {
-  if (!allGood) return "중립 정렬이 흐트러졌어요. 어깨와 골반을 맞춰주세요.";
+  if (!allGood) return "얼굴, 어깨, 골반이 화면 중앙에 오도록 맞춰주세요.";
   if (open) return "좋아요. 천천히 원위치로 돌아오세요.";
   return "천천히 양팔을 옆으로 벌려주세요.";
 }
