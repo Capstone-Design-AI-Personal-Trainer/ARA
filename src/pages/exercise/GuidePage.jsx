@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../../api";
 import GuideVideo from "../../components/GuideVideo";
 import SequentialScreen from "../../components/SequentialScreen";
+import shoulderAbductionCard from "../../assets/exercises/shoulder/shoulder-abduction-card.png";
 
 function fallbackGuideDetail(id, detail) {
   return {
@@ -69,6 +70,9 @@ export default function GuidePage() {
   return (
     <SequentialScreen className="screen-react">
       <div className="exercise-hero card-react">
+        {id === "shoulder-abduction" ? (
+          <img className="exercise-hero-image" src={shoulderAbductionCard} alt="" aria-hidden="true" />
+        ) : null}
         <button className="hero-back" onClick={() => navigate(backTarget)}>‹</button>
         <div className="hero-label">
           <h3>{detail.name}</h3>
@@ -109,27 +113,6 @@ export default function GuidePage() {
             <li key={step}>{step}</li>
           ))}
         </ol>
-      </div>
-
-      <div className="glass-react card-react">
-        <h3>앞으로 가능한 동작</h3>
-        {detail.futureMoves.length ? (
-          <div className="stack">
-            {detail.futureMoves.map((move) => (
-              <article key={move.id} className="glass-react card-react row-between">
-                <div>
-                  <strong>{move.name}</strong>
-                  <p className="muted-react">{move.subtitle}</p>
-                </div>
-                <button className="btn-react" onClick={() => navigate(`/guide/${move.id}`, { state: { detail: null } })}>
-                  보기
-                </button>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="muted-react">추천 동작이 없습니다.</p>
-        )}
       </div>
 
       <button className="btn-react primary detail-start" onClick={() => navigate("/live", { state: { exerciseId: detail.id, exerciseName: detail.name } })}>

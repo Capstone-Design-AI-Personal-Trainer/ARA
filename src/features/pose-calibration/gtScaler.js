@@ -41,11 +41,11 @@ export function applyCalibrationToGtFrame(gtFrame, calibration) {
   const userMetrics = calibration?.userMetrics;
   if (!userMetrics || !Array.isArray(gtFrame)) return gtFrame;
 
-  const gtMetrics = computeBodyMetrics(gtFrame, 0.2);
+  const gtMetrics = calibration?.gtMetrics || computeBodyMetrics(gtFrame, 0.2);
   if (!gtMetrics) return gtFrame;
 
   const scale = computeScaleFromMetrics(userMetrics, gtMetrics);
-  const gtAnchor = gtMetrics.shoulderCenter || gtMetrics.center;
+  const gtAnchor = calibration?.gtAnchor || gtMetrics.shoulderCenter || gtMetrics.center;
   const userAnchor = calibration?.overlayCenter || userMetrics.shoulderCenter || userMetrics.center;
   return transformGtFrame(gtFrame, gtAnchor, userAnchor, scale);
 }

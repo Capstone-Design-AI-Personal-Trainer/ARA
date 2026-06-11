@@ -14,7 +14,7 @@
   padding: 24px 4px 10px;
   overflow: hidden;
   color: var(--rehab-ink);
-  background: #fff;
+  background: transparent;
 }
 
 .rehab-copy {
@@ -164,7 +164,7 @@
   --rehab-ink: #f1f6f6;
   --rehab-sub: #aab8b8;
   --rehab-accent: #69caca;
-  background: #0a1114;
+  background: transparent;
 }
 
 .theme-dark .rehab-copy h1 {

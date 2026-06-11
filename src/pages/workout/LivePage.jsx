@@ -47,15 +47,6 @@ function mirrorLandmarksX(landmarks) {
   ));
 }
 
-function createLiveCalibration(landmarks) {
-  const userMetrics = computeCalibrationMetrics(landmarks, 0.35);
-  if (!userMetrics) return null;
-  return {
-    sampleCount: 1,
-    userMetrics,
-  };
-}
-
 function ScanPanel({ countdown, checks }) {
   return (
     <div className="scan-stage-panel">
@@ -326,11 +317,6 @@ export default function LivePage() {
             setCountdown((c) => (c === 3 ? c : 3));
           }
         } else if (currentStage === "live") {
-          const liveCalibration = createLiveCalibration(lm);
-          if (liveCalibration) {
-            poseCalibrationRef.current = liveCalibration;
-          }
-
           const gtFrame = latestGtFrameRef.current;
           const calibration = poseCalibrationRef.current;
           const calibratedGtFrame = gtFrame && calibration
@@ -360,9 +346,6 @@ export default function LivePage() {
               accuracyRef.current = next;
               return prev === next ? prev : next;
             });
-            if (liveCalibration) {
-              setPoseCalibration(liveCalibration);
-            }
             if (hasEnoughSamples && rolling >= PERFECT_SCORE_THRESHOLD && now - lastPerfectReactionRef.current >= PERFECT_REACTION_COOLDOWN_MS) {
               lastPerfectReactionRef.current = now;
               reactionIdRef.current += 1;
@@ -409,6 +392,20 @@ export default function LivePage() {
   const handleGtFrame = React.useCallback(({ frame }) => {
     if (!Array.isArray(frame)) return;
     latestGtFrameRef.current = frame;
+    const calibration = poseCalibrationRef.current;
+    if (calibration && !calibration.gtMetrics) {
+      const gtMetrics = computeCalibrationMetrics(frame, 0.2);
+      if (gtMetrics) {
+        const fixedCalibration = {
+          ...calibration,
+          gtMetrics,
+          gtAnchor: gtMetrics.shoulderCenter || gtMetrics.center,
+        };
+        poseCalibrationRef.current = fixedCalibration;
+        setPoseCalibration(fixedCalibration);
+        setActiveCalibration(fixedCalibration);
+      }
+    }
     if (pausedRef.current || stageRef.current !== "live") return;
 
     const leftWrist = frame[15];
@@ -500,7 +497,7 @@ export default function LivePage() {
   return (
     <SequentialScreen className={`screen-react live-screen ${isScan ? "scan-mode" : ""}`}>
       <div className="live-head">
-        <h2 className="live-title">{isScan ? "2초간 자세를 유지" : `${exerciseName} - 런지`}</h2>
+        <h2 className="live-title">{isScan ? "2초간 자세를 유지" : exerciseName}</h2>
       </div>
 
       <div className={`live-camera-card ${isScan ? "scan-camera" : ""}`}>

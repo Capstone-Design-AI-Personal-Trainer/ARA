@@ -62,7 +62,7 @@ a { color: inherit; text-decoration: none; }
 .ios-frame {
   width: min(390px, calc(100vw - 24px));
   aspect-ratio: 390 / 844;
-  border-radius: 48px;
+  border-radius: 0;
   overflow: hidden;
   position: relative;
   background: var(--app-bg-0);
@@ -660,10 +660,22 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: flex-end;
 }
+.exercise-hero-image {
+  position: absolute;
+  inset: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  object-fit: contain;
+  object-position: center;
+  opacity: 0.96;
+  pointer-events: none;
+  user-select: none;
+}
 .hero-back {
   position: absolute;
   top: 12px;
   left: 12px;
+  z-index: 2;
   width: 34px;
   height: 34px;
   border-radius: 10px;
@@ -673,6 +685,8 @@ a { color: inherit; text-decoration: none; }
   font-size: 20px;
 }
 .hero-label {
+  position: relative;
+  z-index: 1;
   width: 100%;
   padding: 14px;
   background: linear-gradient(180deg, transparent 0%, rgba(6,10,15,0.55) 70%);
@@ -735,8 +749,22 @@ a { color: inherit; text-decoration: none; }
   max-width: 290px;
   aspect-ratio: 220 / 340;
   position: relative;
+  overflow: hidden;
   border-radius: 40px;
   background: radial-gradient(circle at 50% 35%, rgba(23,58,96,0.45), rgba(5,7,10,0.35) 70%);
+}
+.diag-body-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 68%;
+  height: 92%;
+  object-fit: contain;
+  opacity: 0.92;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 18px 36px rgba(63, 150, 158, 0.18));
+  pointer-events: none;
+  user-select: none;
 }
 .diag-skeleton {
   position: absolute;
@@ -762,6 +790,9 @@ a { color: inherit; text-decoration: none; }
   background: transparent;
   box-shadow: none;
   cursor: pointer;
+}
+.diag-hotspot:disabled {
+  cursor: not-allowed;
 }
 .diag-hotspot.active {
   width: 30px;
@@ -805,6 +836,10 @@ a { color: inherit; text-decoration: none; }
 .diag-hotspot-waist.active {
   width: 54px;
   height: 30px;
+}
+.diag-cta:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 .diag-ripple {
   position: absolute;
