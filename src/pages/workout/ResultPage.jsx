@@ -7,6 +7,10 @@ import {
   getWorkoutRecording,
   saveWorkoutRecording,
 } from "../../features/junyoung/recording/workoutRecordingStore";
+import {
+  replaceCachedWorkoutId,
+  saveCachedWorkout,
+} from "../../features/workoutHistory/workoutHistoryStore";
 import "./ResultPage.module.css";
 
 function fmtDuration(sec) {
@@ -44,6 +48,23 @@ export default function ResultPage() {
     async function saveSession() {
       if (savedRef.current) return;
       savedRef.current = true;
+      const localId = `local-${Date.now()}`;
+      const localRecord = saveCachedWorkout({
+        id: localId,
+        exerciseId: state?.exerciseId,
+        exerciseName,
+        score,
+        accuracyScore: score,
+        reps,
+        targetReps,
+        durationSec,
+        calories,
+        reason: state?.reason,
+        recordingKey: state?.recordingId || "",
+        hasRecording: Boolean(state?.recordingId),
+        createdAt: new Date().toISOString(),
+      });
+      if (!ignore) setSavedSessionId(localRecord.id);
 
       try {
         const saved = await apiFetch("/api/exercise-sessions", {
@@ -57,9 +78,20 @@ export default function ResultPage() {
             durationSec,
             calories,
             reason: state?.reason,
+            recordingKey: state?.recordingId || "",
+            hasRecording: Boolean(state?.recordingId),
             memo: `${exerciseName} ${reps}회`,
           }),
         });
+        if (saved?.id) {
+          replaceCachedWorkoutId(localId, {
+            ...localRecord,
+            ...saved,
+            id: saved.id,
+            score: saved.accuracyScore ?? score,
+            createdAt: saved.completedAt || saved.createdAt || localRecord.createdAt,
+          });
+        }
         if (state?.recordingId && saved?.id) {
           const recording = await getWorkoutRecording(state.recordingId);
           if (recording?.blob) {
@@ -73,17 +105,24 @@ export default function ResultPage() {
               calories,
             });
             await deleteWorkoutRecording(state.recordingId);
+            await apiFetch(`/api/exercise-sessions/${saved.id}/recording`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                recordingKey: String(saved.id),
+                hasRecording: true,
+              }),
+            });
             if (!ignore) setRecordingStatus("saved");
           } else if (!ignore) {
             setRecordingStatus("missing");
           }
         }
-        if (!ignore) setSavedSessionId(saved?.id ?? null);
+        if (!ignore) setSavedSessionId(saved?.id ?? localRecord.id);
         if (!ignore) setSaveStatus("saved");
       } catch (error) {
         console.error("Failed to save exercise session:", error);
-        if (!ignore) setSaveStatus("failed");
-        if (!ignore && state?.recordingId) setRecordingStatus("failed");
+        if (!ignore) setSaveStatus("cached");
+        if (!ignore && state?.recordingId) setRecordingStatus("saved");
       }
     }
 
@@ -176,6 +215,7 @@ export default function ResultPage() {
 
       {saveStatus === "saving" ? <p className="muted-react">기록 저장 중...</p> : null}
       {saveStatus === "saved" ? <p className="muted-react">기록이 DB에 저장되었습니다.</p> : null}
+      {saveStatus === "cached" ? <p className="muted-react">기록이 이 브라우저에 저장되었습니다.</p> : null}
       {saveStatus === "failed" ? <p className="muted-react">기록 저장에 실패했습니다.</p> : null}
       {recordingStatus === "saving" ? <p className="muted-react">녹화 저장 중...</p> : null}
       {recordingStatus === "saved" ? <p className="muted-react">녹화가 이 기기에 저장되었습니다.</p> : null}

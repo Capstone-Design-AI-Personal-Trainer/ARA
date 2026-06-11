@@ -20,6 +20,35 @@ npm install
 
 ## 개발 서버 실행
 
+백엔드와 프론트엔드를 각각 실행합니다.
+
+### 백엔드 실행
+
+로컬 H2 DB로 실행:
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Supabase DB로 실행:
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=supabase
+```
+
+백엔드 시작 로그에서 현재 DB를 확인할 수 있습니다.
+
+```text
+Active Spring profiles: supabase
+Active database: Supabase/PostgreSQL
+```
+
+심사용 데모만 빠르게 돌릴 때는 H2로도 충분하지만, 실제 회원가입 데이터를 Supabase에 남기려면 반드시 `supabase` 프로필로 실행해야 합니다.
+
+### 프론트엔드 실행
+
 ```bash
 npm run dev
 ```

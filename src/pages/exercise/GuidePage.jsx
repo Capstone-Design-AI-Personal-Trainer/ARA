@@ -4,14 +4,28 @@ import { apiFetch } from "../../api";
 import GuideVideo from "../../components/GuideVideo";
 import SequentialScreen from "../../components/SequentialScreen";
 
+function fallbackGuideDetail(id, detail) {
+  return {
+    id,
+    name: detail?.name || detail?.title || id,
+    subtitle: detail?.subtitle || `${detail?.part || "재활"} · ${detail?.minutes || "10 min"}`,
+    level: detail?.level || "중",
+    intro: detail?.intro || ["관절 안정성 향상을 위한 재활 운동입니다."],
+    steps: detail?.steps || ["준비자세", "권장 가동 범위에서 수행", "호흡 유지 후 종료"],
+    guideVideoUrl: detail?.guideVideoUrl || "",
+    futureMoves: detail?.futureMoves || [],
+  };
+}
+
 export default function GuidePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
-  const [detail, setDetail] = React.useState(state?.detail || null);
+  const [detail, setDetail] = React.useState(state?.detail ? fallbackGuideDetail(id, state.detail) : null);
   const [loading, setLoading] = React.useState(!detail);
   const [error, setError] = React.useState();
   const [videoError, setVideoError] = React.useState(false);
+  const backTarget = state?.fromExerciseList ? "/exercise" : -1;
 
   React.useEffect(() => {
     if (detail) return;
@@ -19,7 +33,7 @@ export default function GuidePage() {
     setLoading(true);
     apiFetch(`/api/exercises/${id}`)
       .then((data) => {
-        if (active) setDetail(data);
+        if (active) setDetail(fallbackGuideDetail(id, data));
       })
       .catch((errorResponse) => {
         console.error("Failed to load exercise detail:", errorResponse);
@@ -55,7 +69,7 @@ export default function GuidePage() {
   return (
     <SequentialScreen className="screen-react">
       <div className="exercise-hero card-react">
-        <button className="hero-back" onClick={() => navigate(-1)}>‹</button>
+        <button className="hero-back" onClick={() => navigate(backTarget)}>‹</button>
         <div className="hero-label">
           <h3>{detail.name}</h3>
           <div className="hero-meta">

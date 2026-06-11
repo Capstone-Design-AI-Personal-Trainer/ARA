@@ -2,10 +2,10 @@ package com.ara.service;
 
 import com.ara.controller.dto.MedicalReportRequest;
 import com.ara.controller.dto.MedicalReportResponse;
-import com.ara.entity.ExerciseSession;
 import com.ara.entity.MedicalReport;
 import com.ara.entity.User;
-import com.ara.repository.ExerciseSessionRepository;
+import com.ara.exercise.session.entity.ExerciseSession;
+import com.ara.exercise.session.repository.ExerciseSessionRepository;
 import com.ara.repository.MedicalReportRepository;
 import com.ara.repository.UserRepository;
 import org.springframework.stereotype.Service;

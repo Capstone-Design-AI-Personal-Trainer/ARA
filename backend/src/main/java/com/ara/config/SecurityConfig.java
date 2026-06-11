@@ -1,6 +1,7 @@
 package com.ara.config;
 
 import com.ara.repository.UserRepository;
+import com.ara.security.OAuth2LoginModeStore;
 import com.ara.security.JwtAuthenticationFilter;
 import com.ara.security.JwtUtil;
 import com.ara.service.CustomOAuth2UserService;
@@ -49,11 +50,18 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginModeStore oauth2LoginModeStore;
 
-    public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository, CustomOAuth2UserService customOAuth2UserService) {
+    public SecurityConfig(
+        JwtUtil jwtUtil,
+        UserRepository userRepository,
+        CustomOAuth2UserService customOAuth2UserService,
+        OAuth2LoginModeStore oauth2LoginModeStore
+    ) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.oauth2LoginModeStore = oauth2LoginModeStore;
     }
 
     @Bean
@@ -106,17 +114,24 @@ public class SecurityConfig {
                     com.ara.entity.User user = oauth2User.getUser();
 
                     String token = jwtUtil.generateToken(user.getEmail());
+                    String mode = request.getParameter("state") == null
+                        ? "login"
+                        : oauth2LoginModeStore.remove(request.getParameter("state")).orElse("login");
 
                     // 프론트엔드로 리다이렉트하면서 토큰 전달
                     String redirectUrl = String.format(
-                        "http://localhost:5173/login?token=%s&email=%s&name=%s",
+                        "http://localhost:5173/login?token=%s&email=%s&name=%s&mode=%s",
                         token,
                         URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8),
-                        URLEncoder.encode(user.getName(), StandardCharsets.UTF_8)
+                        URLEncoder.encode(user.getName(), StandardCharsets.UTF_8),
+                        URLEncoder.encode(mode, StandardCharsets.UTF_8)
                     );
                     response.sendRedirect(redirectUrl);
                 })
                 .failureHandler((request, response, exception) -> {
+                    if (request.getParameter("state") != null) {
+                        oauth2LoginModeStore.remove(request.getParameter("state"));
+                    }
                     String redirectUrl = String.format(
                         "http://localhost:5173/login?oauthError=%s",
                         URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8)
@@ -153,6 +168,10 @@ public class SecurityConfig {
                 }
 
                 AUTHORIZATION_REQUESTS.put(authorizationRequest.getState(), authorizationRequest);
+                oauth2LoginModeStore.save(
+                    authorizationRequest.getState(),
+                    String.valueOf(authorizationRequest.getAttribute("mode"))
+                );
 
                 Cookie cookie = new Cookie(OAUTH2_STATE_COOKIE_NAME, authorizationRequest.getState());
                 cookie.setPath("/");
@@ -224,10 +243,18 @@ public class SecurityConfig {
                 OAuth2AuthorizationRequest authorizationRequest,
                 HttpServletRequest request
             ) {
-                if (authorizationRequest == null
-                    || !"signup".equals(request.getParameter("mode"))
-                    || !request.getRequestURI().endsWith("/naver")) {
+                if (authorizationRequest == null) {
                     return authorizationRequest;
+                }
+
+                String mode = "signup".equals(request.getParameter("mode")) ? "signup" : "login";
+                Map<String, Object> attributes = new LinkedHashMap<>(authorizationRequest.getAttributes());
+                attributes.put("mode", mode);
+
+                if (!"signup".equals(mode) || !request.getRequestURI().endsWith("/naver")) {
+                    return OAuth2AuthorizationRequest.from(authorizationRequest)
+                        .attributes(attributes)
+                        .build();
                 }
 
                 Map<String, Object> additionalParameters =
@@ -235,6 +262,7 @@ public class SecurityConfig {
                 additionalParameters.put("auth_type", "reprompt");
 
                 return OAuth2AuthorizationRequest.from(authorizationRequest)
+                    .attributes(attributes)
                     .additionalParameters(additionalParameters)
                     .build();
             }
