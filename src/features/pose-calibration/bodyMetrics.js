@@ -10,6 +10,16 @@ function isVisible(point, minVisibility = 0.55) {
   return Boolean(point) && (point.visibility ?? 1) >= minVisibility;
 }
 
+function segmentLength(a, b, minVisibility) {
+  if (!isVisible(a, minVisibility) || !isVisible(b, minVisibility)) return null;
+  return distance(a, b);
+}
+
+function averageSides(left, right) {
+  if (left != null && right != null) return (left + right) / 2;
+  return left ?? right ?? null;
+}
+
 export function computeBodyMetrics(landmarks, minVisibility = 0.55) {
   const leftShoulder = landmarks?.[11];
   const rightShoulder = landmarks?.[12];
@@ -34,12 +44,22 @@ export function computeBodyMetrics(landmarks, minVisibility = 0.55) {
     };
   const hipWidth = hasHips ? distance(leftHip, rightHip) : shouldersWidth * 0.9;
   const torsoLen = hasHips ? distance(shoulderCenter, hipCenter) : shouldersWidth * 1.45;
+  const upperArmLen = averageSides(
+    segmentLength(leftShoulder, landmarks?.[13], minVisibility),
+    segmentLength(rightShoulder, landmarks?.[14], minVisibility)
+  );
+  const forearmLen = averageSides(
+    segmentLength(landmarks?.[13], landmarks?.[15], minVisibility),
+    segmentLength(landmarks?.[14], landmarks?.[16], minVisibility)
+  );
 
   return {
     shoulderWidth: shouldersWidth,
     shoulderCenter,
     hipWidth,
     torsoLen,
+    upperArmLen,
+    forearmLen,
     center: hipCenter,
     inferredFromUpperBodyOnly: !hasHips,
   };
@@ -75,9 +95,17 @@ export function averageBodyMetrics(samples) {
     },
     hipWidth: total.hipWidth / count,
     torsoLen: total.torsoLen / count,
+    upperArmLen: averageDefined(samples, "upperArmLen"),
+    forearmLen: averageDefined(samples, "forearmLen"),
     center: {
       x: total.centerX / count,
       y: total.centerY / count,
     },
   };
+}
+
+function averageDefined(samples, key) {
+  const values = samples.map((sample) => sample[key]).filter((value) => value != null);
+  if (!values.length) return null;
+  return values.reduce((acc, value) => acc + value, 0) / values.length;
 }

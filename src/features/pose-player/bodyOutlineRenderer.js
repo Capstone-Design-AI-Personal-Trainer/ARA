@@ -10,102 +10,40 @@ function midpoint(a, b) {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-function drawLimb(ctx, points, radius) {
-  const visiblePoints = points.filter(Boolean);
-  if (visiblePoints.length < 2) return;
-
+function drawCapsule(ctx, from, to, radius) {
+  if (radius <= 0) return;
   ctx.lineWidth = radius * 2;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.beginPath();
-  ctx.moveTo(visiblePoints[0].x, visiblePoints[0].y);
-  for (let index = 1; index < visiblePoints.length; index += 1) {
-    ctx.lineTo(visiblePoints[index].x, visiblePoints[index].y);
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+// Fill the polygon, then stroke it with round joins: the result is the polygon
+// uniformly inflated outward by `radius` with rounded corners.
+function drawInflatedPolygon(ctx, points, radius) {
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+  });
+  ctx.closePath();
+  ctx.fill();
+  if (radius > 0) {
+    ctx.lineWidth = radius * 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
   }
-  ctx.stroke();
 }
 
-function drawTorso(ctx, leftShoulder, rightShoulder, leftHip, rightHip, inflate = 1) {
-  const shoulderWidth = distance(leftShoulder, rightShoulder);
-  const topPad = shoulderWidth * 0.1 * inflate;
-  const sidePad = shoulderWidth * 0.2 * inflate;
-  const lowerPad = shoulderWidth * 0.28 * inflate;
-  const neck = midpoint(leftShoulder, rightShoulder);
-  const torsoBottom = {
-    x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
-    y: Math.min(
-      midpoint(leftHip, rightHip).y,
-      midpoint(leftShoulder, rightShoulder).y + shoulderWidth * 0.82 * inflate
-    ),
-  };
-
-  ctx.beginPath();
-  ctx.moveTo(leftShoulder.x - sidePad, leftShoulder.y + topPad);
-  ctx.quadraticCurveTo(neck.x, neck.y - shoulderWidth * 0.18 * inflate, rightShoulder.x + sidePad, rightShoulder.y + topPad);
-  ctx.quadraticCurveTo(
-    torsoBottom.x + shoulderWidth * 0.48 * inflate,
-    (rightShoulder.y + torsoBottom.y) / 2,
-    torsoBottom.x + lowerPad,
-    torsoBottom.y
-  );
-  ctx.quadraticCurveTo(torsoBottom.x, torsoBottom.y + shoulderWidth * 0.08 * inflate, torsoBottom.x - lowerPad, torsoBottom.y);
-  ctx.quadraticCurveTo(
-    torsoBottom.x - shoulderWidth * 0.48 * inflate,
-    (leftShoulder.y + torsoBottom.y) / 2,
-    leftShoulder.x - sidePad,
-    leftShoulder.y + topPad
-  );
-  ctx.closePath();
-  ctx.fill();
-}
-
-function strokeTorsoOutline(ctx, leftShoulder, rightShoulder, leftHip, rightHip, style) {
-  const shoulderWidth = distance(leftShoulder, rightShoulder);
-  const topPad = shoulderWidth * 0.1;
-  const sidePad = shoulderWidth * 0.2;
-  const lowerPad = shoulderWidth * 0.28;
-  const neck = midpoint(leftShoulder, rightShoulder);
-  const torsoBottom = {
-    x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
-    y: Math.min(
-      midpoint(leftHip, rightHip).y,
-      midpoint(leftShoulder, rightShoulder).y + shoulderWidth * 0.82
-    ),
-  };
-
-  ctx.save();
-  ctx.strokeStyle = style.stroke;
-  ctx.lineWidth = style.strokeWidth ?? 5;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(leftShoulder.x - sidePad, leftShoulder.y + topPad);
-  ctx.quadraticCurveTo(neck.x, neck.y - shoulderWidth * 0.18, rightShoulder.x + sidePad, rightShoulder.y + topPad);
-  ctx.quadraticCurveTo(
-    torsoBottom.x + shoulderWidth * 0.48,
-    (rightShoulder.y + torsoBottom.y) / 2,
-    torsoBottom.x + lowerPad,
-    torsoBottom.y
-  );
-  ctx.quadraticCurveTo(torsoBottom.x, torsoBottom.y + shoulderWidth * 0.08, torsoBottom.x - lowerPad, torsoBottom.y);
-  ctx.quadraticCurveTo(
-    torsoBottom.x - shoulderWidth * 0.48,
-    (leftShoulder.y + torsoBottom.y) / 2,
-    leftShoulder.x - sidePad,
-    leftShoulder.y + topPad
-  );
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawHead(ctx, headCenter, radiusX, radiusY) {
-  ctx.beginPath();
-  ctx.ellipse(headCenter.x, headCenter.y, radiusX, radiusY, 0, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawSuitShape(ctx, frame, style, inset = 0) {
+// Draws the whole suit silhouette as one filled union.
+// `pad` is a signed pixel offset added to every part radius, so an outer pass
+// (pad = 0) and an inner pass (pad = -strokeWidth) stay parallel everywhere
+// and leave a ring of constant thickness.
+function drawSuitShape(ctx, frame, style, pad = 0) {
   const minVisibility = style.minVisibility ?? 0.35;
   const leftShoulder = frame[11];
   const rightShoulder = frame[12];
@@ -130,33 +68,44 @@ function drawSuitShape(ctx, frame, style, inset = 0) {
 
   const shoulderWidth = distance(leftShoulder, rightShoulder);
   const neck = midpoint(leftShoulder, rightShoulder);
+
+  // Torso: follow the real shoulder/hip landmarks, inflated by the suit bulk.
+  const torsoRadius = shoulderWidth * 0.2 + pad;
+  drawInflatedPolygon(
+    ctx,
+    [leftShoulder, rightShoulder, rightHip, leftHip],
+    Math.max(torsoRadius, 0.5)
+  );
+
+  // Head + neck connector so the helmet always merges into the torso.
   const earDistance = visible(leftEar, minVisibility) && visible(rightEar, minVisibility)
     ? distance(leftEar, rightEar)
     : shoulderWidth * 0.52;
-  const headRadiusX = Math.max(earDistance * 0.66, shoulderWidth * 0.28) - inset;
-  const headRadiusY = headRadiusX * 1.18;
-  const headCenter = visible(nose, minVisibility)
-    ? { x: nose.x, y: neck.y - headRadiusY * 0.82 }
-    : { x: neck.x, y: neck.y - headRadiusY * 0.82 };
-
+  const baseHeadRadiusX = Math.max(earDistance * 0.66, shoulderWidth * 0.3);
+  const headRadiusX = baseHeadRadiusX + pad;
+  const headRadiusY = baseHeadRadiusX * 1.18 + pad;
+  const headCenter = {
+    x: visible(nose, minVisibility) ? nose.x : neck.x,
+    y: neck.y - (baseHeadRadiusX * 1.18) * 0.95,
+  };
   if (headRadiusX > 1 && headRadiusY > 1) {
-    drawHead(ctx, headCenter, headRadiusX, headRadiusY);
+    ctx.beginPath();
+    ctx.ellipse(headCenter.x, headCenter.y, headRadiusX, headRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawCapsule(ctx, neck, headCenter, shoulderWidth * 0.14 + pad);
   }
 
-  drawTorso(ctx, leftShoulder, rightShoulder, leftHip, rightHip, inset > 0 ? 0.72 : 1);
-
-  const armRadius = Math.max(shoulderWidth * 0.17 - inset, 1);
-  const forearmRadius = Math.max(shoulderWidth * 0.145 - inset, 1);
-
+  // Arms: roomy capsules along the actual shoulder-elbow-wrist landmarks.
+  const upperArmRadius = shoulderWidth * 0.19 + pad;
+  const forearmRadius = shoulderWidth * 0.16 + pad;
   [
-    [[leftShoulder, leftElbow], armRadius],
-    [[leftElbow, leftWrist], forearmRadius],
-    [[rightShoulder, rightElbow], armRadius],
-    [[rightElbow, rightWrist], forearmRadius],
-  ].forEach(([points, radius]) => {
-    const [start, end] = points;
+    [leftShoulder, leftElbow, upperArmRadius],
+    [leftElbow, leftWrist, forearmRadius],
+    [rightShoulder, rightElbow, upperArmRadius],
+    [rightElbow, rightWrist, forearmRadius],
+  ].forEach(([start, end, radius]) => {
     if (visible(start, minVisibility) && visible(end, minVisibility)) {
-      drawLimb(ctx, points, radius);
+      drawCapsule(ctx, start, end, radius);
     }
   });
 
@@ -171,6 +120,8 @@ export function drawBodyOutline(ctx, frame, style) {
   const bufferCtx = buffer.getContext("2d");
   if (!bufferCtx) return;
 
+  // Outer silhouette, then punch out the same shape shrunk by strokeWidth so
+  // only a constant-width outline ring remains (interior stays transparent).
   bufferCtx.fillStyle = style.stroke;
   bufferCtx.strokeStyle = style.stroke;
   const drewShape = drawSuitShape(bufferCtx, frame, style, 0);
@@ -179,15 +130,11 @@ export function drawBodyOutline(ctx, frame, style) {
   bufferCtx.globalCompositeOperation = "destination-out";
   bufferCtx.fillStyle = "#000";
   bufferCtx.strokeStyle = "#000";
-  drawSuitShape(bufferCtx, frame, style, strokeWidth);
+  drawSuitShape(bufferCtx, frame, style, -strokeWidth);
 
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
   ctx.shadowBlur = 5;
   ctx.drawImage(buffer, 0, 0);
-  if (visible(frame[11], style.minVisibility) && visible(frame[12], style.minVisibility)
-    && visible(frame[23], style.minVisibility) && visible(frame[24], style.minVisibility)) {
-    strokeTorsoOutline(ctx, frame[11], frame[12], frame[23], frame[24], style);
-  }
   ctx.restore();
 }

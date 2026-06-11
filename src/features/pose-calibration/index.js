@@ -6,6 +6,7 @@ export {
 } from "./calibrationSession";
 export {
   computeScaleFromMetrics,
+  computeGtSegmentMax,
   transformGtFrame,
   applyCalibrationToGtFrame,
 } from "./gtScaler";

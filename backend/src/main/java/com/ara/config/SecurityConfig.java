@@ -94,6 +94,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/oauth2/**").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/login/oauth2/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/exercises/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()

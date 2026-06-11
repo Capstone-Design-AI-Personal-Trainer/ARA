@@ -4,7 +4,7 @@ import { getFrameAtTime } from "./posePlayback";
 import { projectPoseFrame } from "./poseProjector";
 import { drawBodyOutline } from "./bodyOutlineRenderer";
 import { DEFAULT_BODY_STYLE } from "./bodySilhouetteStyle";
-import { applyCalibrationToGtFrame } from "../pose-calibration";
+import { applyCalibrationToGtFrame, getActiveCalibration } from "../pose-calibration";
 
 function drawFrame(ctx, frame, width, height, style, calibration) {
   ctx.clearRect(0, 0, width, height);
@@ -25,6 +25,7 @@ export default function PoseSilhouetteCanvas({
   source = "/gt_pose_clean.json",
   loop = true,
   autoPlay = true,
+  playbackRate = 1,
   width = 320,
   height = 480,
   style = DEFAULT_BODY_STYLE,
@@ -74,14 +75,18 @@ export default function PoseSilhouetteCanvas({
       const result = getFrameAtTime({
         frames: data.frames,
         fps: data.fps,
-        elapsedMs: now - startTimeRef.current,
+        elapsedMs: (now - startTimeRef.current) * playbackRate,
         loop,
       });
       if (!result) return;
 
-      drawFrame(ctx, result.frame, canvas.width, canvas.height, style, calibration);
+      // The active calibration store carries per-frame overlay anchor updates
+      // without forcing prop changes / re-renders on every camera frame.
+      const liveCalibration = calibration ? getActiveCalibration() || calibration : calibration;
+      drawFrame(ctx, result.frame, canvas.width, canvas.height, style, liveCalibration);
       onFrame?.({
         frame: result.frame,
+        frames: data.frames,
         frameIndex: result.frameIndex,
         fps: data.fps,
         frameCount: data.frames.length,
@@ -94,7 +99,7 @@ export default function PoseSilhouetteCanvas({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [autoPlay, calibration, loop, onFrame, status, style]);
+  }, [autoPlay, calibration, loop, onFrame, playbackRate, status, style]);
 
   return (
     <div

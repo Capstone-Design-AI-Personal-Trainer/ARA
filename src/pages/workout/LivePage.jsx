@@ -5,6 +5,7 @@ import PoseSilhouetteCanvas from "../../features/pose-player/PoseSilhouetteCanva
 import {
   applyCalibrationToGtFrame,
   computeBodyMetrics as computeCalibrationMetrics,
+  computeGtSegmentMax,
   createCalibrationSession,
   finalizeCalibrationSession,
   pushCalibrationSample,
@@ -29,6 +30,7 @@ const PERFECT_REACTION_COOLDOWN_MS = 2400;
 const MIN_ACCURACY_SAMPLES = 8;
 const GT_OPEN_RATIO = 2.4;
 const GT_CLOSED_RATIO = 1.6;
+const OVERLAY_FOLLOW_ALPHA = 0.35;
 const ACCURACY_SCORE_OPTIONS = {
   minVisibility: 0.45,
   distanceGood: 0.035,
@@ -120,6 +122,7 @@ export default function LivePage() {
   const scoreSamplesRef = React.useRef([]);
   const calibrationSessionRef = React.useRef(createCalibrationSession());
   const poseCalibrationRef = React.useRef(null);
+  const overlayAnchorRef = React.useRef(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastPerfectReactionRef = React.useRef(0);
   const reactionIdRef = React.useRef(0);
@@ -167,6 +170,7 @@ export default function LivePage() {
     const t3 = setTimeout(() => {
       const calibration = finalizeCalibrationSession(calibrationSessionRef.current);
       poseCalibrationRef.current = calibration;
+      overlayAnchorRef.current = calibration?.userMetrics?.shoulderCenter || null;
       setPoseCalibration(calibration);
       setActiveCalibration(calibration);
       gtRepPhaseRef.current = "closed";
@@ -300,6 +304,7 @@ export default function LivePage() {
             else {
               const calibration = finalizeCalibrationSession(calibrationSessionRef.current);
               poseCalibrationRef.current = calibration;
+              overlayAnchorRef.current = calibration?.userMetrics?.shoulderCenter || null;
               setPoseCalibration(calibration);
               setActiveCalibration(calibration);
               gtRepPhaseRef.current = "closed";
@@ -318,7 +323,33 @@ export default function LivePage() {
           }
         } else if (currentStage === "live") {
           const gtFrame = latestGtFrameRef.current;
-          const calibration = poseCalibrationRef.current;
+          let calibration = poseCalibrationRef.current;
+
+          const leftShoulder = lm[11];
+          const rightShoulder = lm[12];
+          if (
+            calibration
+            && leftShoulder && rightShoulder
+            && (leftShoulder.visibility ?? 1) >= 0.5
+            && (rightShoulder.visibility ?? 1) >= 0.5
+          ) {
+            const target = {
+              x: (leftShoulder.x + rightShoulder.x) / 2,
+              y: (leftShoulder.y + rightShoulder.y) / 2,
+            };
+            const prev = overlayAnchorRef.current;
+            const next = prev
+              ? {
+                x: prev.x + (target.x - prev.x) * OVERLAY_FOLLOW_ALPHA,
+                y: prev.y + (target.y - prev.y) * OVERLAY_FOLLOW_ALPHA,
+              }
+              : target;
+            overlayAnchorRef.current = next;
+            calibration = { ...calibration, overlayCenter: next };
+            poseCalibrationRef.current = calibration;
+            setActiveCalibration(calibration);
+          }
+
           const calibratedGtFrame = gtFrame && calibration
             ? applyCalibrationToGtFrame(gtFrame, calibration)
             : null;
@@ -389,7 +420,7 @@ export default function LivePage() {
     rafRef.current = requestAnimationFrame(processFrame);
   }, [finishSession, markPerfect]);
 
-  const handleGtFrame = React.useCallback(({ frame }) => {
+  const handleGtFrame = React.useCallback(({ frame, frames }) => {
     if (!Array.isArray(frame)) return;
     latestGtFrameRef.current = frame;
     const calibration = poseCalibrationRef.current;
@@ -400,6 +431,7 @@ export default function LivePage() {
           ...calibration,
           gtMetrics,
           gtAnchor: gtMetrics.shoulderCenter || gtMetrics.center,
+          gtSegmentMax: computeGtSegmentMax(frames),
         };
         poseCalibrationRef.current = fixedCalibration;
         setPoseCalibration(fixedCalibration);
@@ -508,6 +540,7 @@ export default function LivePage() {
             <PoseSilhouetteCanvas
               width={720}
               height={800}
+              playbackRate={0.6}
               transparent
               showMeta={false}
               className="live-gt-overlay-canvas"
